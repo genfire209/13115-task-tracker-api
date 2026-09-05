@@ -1,6 +1,7 @@
 const express = require('express');
 const { sql, getPool } = require('../db');
 const { verifyGoogleToken, verifyAppleToken } = require('../authVerify');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ function toUserJson(row) {
 
 // POST /api/auth/login
 // Body: { provider: 'google'|'apple', idToken: string, name?: string }
-router.post('/login', async (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { provider, idToken, name: fallbackName } = req.body;
 
   let email, name;
@@ -56,6 +57,6 @@ router.post('/login', async (req, res) => {
     );
 
   res.status(201).json({ id: email, name, email, authProvider: provider, role: 'member' });
-});
+}));
 
 module.exports = router;

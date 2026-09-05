@@ -1,8 +1,11 @@
 const express = require('express');
 const crypto = require('crypto');
 const { sql, getPool } = require('../db');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
+
+const FK_VIOLATION = 547;
 
 function newId(prefix) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -23,25 +26,25 @@ async function logEvent(pool, taskId, action, actorId, reason) {
 }
 
 // GET /api/tasks
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const pool = await getPool();
   const result = await pool.request().query('SELECT * FROM Tasks ORDER BY dueDate ASC');
   res.json(result.recordset);
-});
+}));
 
 // GET /api/tasks/:id/events
-router.get('/:id/events', async (req, res) => {
+router.get('/:id/events', asyncHandler(async (req, res) => {
   const pool = await getPool();
   const result = await pool
     .request()
     .input('taskId', sql.NVarChar, req.params.id)
     .query('SELECT * FROM TaskEvents WHERE taskId = @taskId ORDER BY timestamp ASC');
   res.json(result.recordset);
-});
+}));
 
 // POST /api/tasks
 // Body: { title, description, category, createdBy, assignedTo, dueDate }
-router.post('/', async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { title, description, category, createdBy, assignedTo, dueDate } = req.body;
 
   if (!title || !category || !createdBy || !dueDate) {
@@ -54,20 +57,27 @@ router.post('/', async (req, res) => {
   const id = newId('task');
   const pool = await getPool();
 
-  await pool
-    .request()
-    .input('id', sql.NVarChar, id)
-    .input('title', sql.NVarChar, title)
-    .input('description', sql.NVarChar, description || '')
-    .input('category', sql.NVarChar, category)
-    .input('createdBy', sql.NVarChar, createdBy)
-    .input('assignedTo', sql.NVarChar, assignedTo || null)
-    .input('status', sql.NVarChar, status)
-    .input('dueDate', sql.DateTime2, new Date(dueDate))
-    .query(
-      `INSERT INTO Tasks (id, title, description, category, createdBy, assignedTo, status, dueDate)
-       VALUES (@id, @title, @description, @category, @createdBy, @assignedTo, @status, @dueDate)`,
-    );
+  try {
+    await pool
+      .request()
+      .input('id', sql.NVarChar, id)
+      .input('title', sql.NVarChar, title)
+      .input('description', sql.NVarChar, description || '')
+      .input('category', sql.NVarChar, category)
+      .input('createdBy', sql.NVarChar, createdBy)
+      .input('assignedTo', sql.NVarChar, assignedTo || null)
+      .input('status', sql.NVarChar, status)
+      .input('dueDate', sql.DateTime2, new Date(dueDate))
+      .query(
+        `INSERT INTO Tasks (id, title, description, category, createdBy, assignedTo, status, dueDate)
+         VALUES (@id, @title, @description, @category, @createdBy, @assignedTo, @status, @dueDate)`,
+      );
+  } catch (err) {
+    if (err.number === FK_VIOLATION) {
+      return res.status(400).json({ error: 'createdBy or assignedTo does not match a known user id' });
+    }
+    throw err;
+  }
 
   await logEvent(
     pool,
@@ -77,11 +87,11 @@ router.post('/', async (req, res) => {
   );
 
   res.status(201).json({ id, title, description, category, createdBy, assignedTo, status, dueDate });
-});
+}));
 
 // PATCH /api/tasks/:id
 // Body: { action: 'claim'|'accept'|'decline'|'complete', actorId, reason? }
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', asyncHandler(async (req, res) => {
   const taskId = req.params.id;
   const { action, actorId, reason } = req.body;
 
@@ -121,11 +131,19 @@ router.patch('/:id', async (req, res) => {
     request.input('assignedTo', sql.NVarChar, newAssignedTo);
     setClause += ', assignedTo = @assignedTo';
   }
-  await request.query(`UPDATE Tasks SET ${setClause} WHERE id = @id`);
+
+  try {
+    await request.query(`UPDATE Tasks SET ${setClause} WHERE id = @id`);
+  } catch (err) {
+    if (err.number === FK_VIOLATION) {
+      return res.status(400).json({ error: 'actorId does not match a known user id' });
+    }
+    throw err;
+  }
 
   await logEvent(pool, taskId, action, actorId, reason);
 
   res.json({ id: taskId, status: newStatus });
-});
+}));
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { sql, getPool } = require('../db');
+const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ function newId(prefix) {
 
 // POST /api/extension-requests
 // Body: { taskId, requestedBy, newDueDate, reason }
-router.post('/', async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { taskId, requestedBy, newDueDate, reason } = req.body;
 
   if (!taskId || !requestedBy || !newDueDate || !reason) {
@@ -45,10 +46,10 @@ router.post('/', async (req, res) => {
     );
 
   res.status(201).json({ id, taskId, requestedBy, newDueDate, reason, status: 'pending' });
-});
+}));
 
 // GET /api/extension-requests?status=pending
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const status = req.query.status;
   const pool = await getPool();
   const request = pool.request();
@@ -59,11 +60,11 @@ router.get('/', async (req, res) => {
   }
   const result = await request.query(query);
   res.json(result.recordset);
-});
+}));
 
 // PATCH /api/extension-requests/:id
 // Body: { status: 'approved'|'denied', actorId }
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', asyncHandler(async (req, res) => {
   const id = req.params.id;
   const { status, actorId } = req.body;
 
@@ -108,6 +109,6 @@ router.patch('/:id', async (req, res) => {
     );
 
   res.json({ id, status });
-});
+}));
 
 module.exports = router;

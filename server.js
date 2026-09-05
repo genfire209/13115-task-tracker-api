@@ -20,5 +20,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Last-resort safety net: log and keep running instead of crashing the
+// whole app on an unexpected rejection outside the request/response cycle.
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
+});
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Task tracker API listening on ${port}`));
