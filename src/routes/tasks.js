@@ -90,10 +90,10 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/tasks/:id
-// Body: { action: 'claim'|'accept'|'decline'|'complete', actorId, reason? }
+// Body: { action: 'claim'|'accept'|'decline'|'complete'|'reassign'|'volunteer', actorId, reason?, newAssigneeId? }
 router.patch('/:id', asyncHandler(async (req, res) => {
   const taskId = req.params.id;
-  const { action, actorId, reason } = req.body;
+  const { action, actorId, reason, newAssigneeId } = req.body;
 
   if (!action || !actorId) {
     return res.status(400).json({ error: 'Missing action or actorId' });
@@ -101,8 +101,26 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (action === 'decline' && !reason) {
     return res.status(400).json({ error: 'A reason is required to decline a task' });
   }
+  if (action === 'reassign' && !newAssigneeId) {
+    return res.status(400).json({ error: 'newAssigneeId is required to reassign a task' });
+  }
 
   const pool = await getPool();
+
+  // 'volunteer' just records interest on a declined task for the captain to
+  // review; it doesn't change the task's status or assignee.
+  if (action === 'volunteer') {
+    try {
+      await logEvent(pool, taskId, action, actorId, reason);
+    } catch (err) {
+      if (err.number === FK_VIOLATION) {
+        return res.status(400).json({ error: 'actorId does not match a known user id' });
+      }
+      throw err;
+    }
+    return res.json({ id: taskId });
+  }
+
   let newStatus;
   let newAssignedTo; // undefined = leave unchanged
 
@@ -120,6 +138,10 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       break;
     case 'complete':
       newStatus = 'completed';
+      break;
+    case 'reassign':
+      newStatus = 'pending_acceptance';
+      newAssignedTo = newAssigneeId;
       break;
     default:
       return res.status(400).json({ error: 'Unknown action' });
