@@ -18,6 +18,14 @@ async function getTaskTitle(pool, taskId) {
   return result.recordset[0]?.title || taskId;
 }
 
+async function getUserName(pool, userId) {
+  const result = await pool
+    .request()
+    .input('id', sql.NVarChar, userId)
+    .query('SELECT name FROM Users WHERE id = @id');
+  return result.recordset[0]?.name || userId;
+}
+
 // POST /api/extension-requests
 // Body: { taskId, requestedBy, newDueDate, reason }
 router.post('/', asyncHandler(async (req, res) => {
@@ -54,10 +62,13 @@ router.post('/', asyncHandler(async (req, res) => {
        VALUES (@id, @taskId, @action, @actorId, @reason)`,
     );
 
-  const title = await getTaskTitle(pool, taskId);
+  const [title, requesterName] = await Promise.all([
+    getTaskTitle(pool, taskId),
+    getUserName(pool, requestedBy),
+  ]);
   sendToCaptainsAndAdmins({
     title: 'Extension request',
-    body: `${requestedBy} requested more time on "${title}"`,
+    body: `${requesterName} requested more time on "${title}"`,
     data: { taskId, type: 'extension_requested' },
   });
 

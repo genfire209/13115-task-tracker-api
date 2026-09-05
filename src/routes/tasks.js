@@ -20,6 +20,14 @@ async function getTaskTitle(pool, taskId) {
   return result.recordset[0]?.title || taskId;
 }
 
+async function getUserName(pool, userId) {
+  const result = await pool
+    .request()
+    .input('id', sql.NVarChar, userId)
+    .query('SELECT name FROM Users WHERE id = @id');
+  return result.recordset[0]?.name || userId;
+}
+
 async function logEvent(pool, taskId, action, actorId, reason) {
   await pool
     .request()
@@ -135,10 +143,13 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       }
       throw err;
     }
-    const title = await getTaskTitle(pool, taskId);
+    const [title, actorName] = await Promise.all([
+      getTaskTitle(pool, taskId),
+      getUserName(pool, actorId),
+    ]);
     sendToCaptainsAndAdmins({
       title: 'Volunteer for a declined task',
-      body: `${actorId} wants to take on "${title}"`,
+      body: `${actorName} wants to take on "${title}"`,
       data: { taskId, type: 'task_volunteer' },
     });
     return res.json({ id: taskId });
@@ -195,10 +206,13 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   await logEvent(pool, taskId, action, actorId, reason);
 
   if (action === 'decline') {
-    const title = await getTaskTitle(pool, taskId);
+    const [title, actorName] = await Promise.all([
+      getTaskTitle(pool, taskId),
+      getUserName(pool, actorId),
+    ]);
     sendToCaptainsAndAdmins({
       title: 'Task declined',
-      body: `${actorId} declined "${title}": ${reason}`,
+      body: `${actorName} declined "${title}": ${reason}`,
       data: { taskId, type: 'task_declined' },
     });
   } else if (action === 'reassign') {
