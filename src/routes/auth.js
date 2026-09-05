@@ -1,6 +1,6 @@
 const express = require('express');
 const { sql, getPool } = require('../db');
-const { verifyGoogleToken, verifyAppleToken } = require('../authVerify');
+const { verifyGoogleToken } = require('../authVerify');
 const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
@@ -16,17 +16,14 @@ function toUserJson(row) {
 }
 
 // POST /api/auth/login
-// Body: { provider: 'google'|'apple', idToken: string, name?: string }
+// Body: { provider: 'google', idToken: string, name?: string }
 router.post('/login', asyncHandler(async (req, res) => {
-  const { provider, idToken, name: fallbackName } = req.body;
+  const { provider, idToken } = req.body;
 
   let email, name;
   try {
     if (provider === 'google') {
       ({ email, name } = await verifyGoogleToken(idToken));
-    } else if (provider === 'apple') {
-      ({ email } = await verifyAppleToken(idToken));
-      name = fallbackName || email;
     } else {
       return res.status(400).json({ error: 'Unknown provider' });
     }
