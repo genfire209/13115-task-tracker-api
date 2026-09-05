@@ -10,9 +10,9 @@ const router = express.Router();
 const CAPTAIN_EMAIL = '427cmisku@frhsd.com';
 // Full captain-level permissions, but the public-facing role label stays
 // whatever it already is (member, in both cases here).
-const ADMIN_EMAILS = ['genfire2009@gmail.com', '428akotilingala@frhsd.com'];
+const ADMIN_EMAILS = ['genfire2009@gmail.com', '428akotilingala@frhsd.com', 'akotilingala@gmail.com'];
 // Never appears in any roster, regardless of role/approval.
-const HIDDEN_FROM_ROSTER_EMAILS = ['genfire2009@gmail.com'];
+const HIDDEN_FROM_ROSTER_EMAILS = ['genfire2009@gmail.com', 'akotilingala@gmail.com'];
 
 function toUserJson(row) {
   return {
