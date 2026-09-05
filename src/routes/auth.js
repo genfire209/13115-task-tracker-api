@@ -53,6 +53,9 @@ router.post('/login', asyncHandler(async (req, res) => {
     .query('SELECT * FROM Users WHERE id = @id');
 
   if (existing.recordset.length > 0) {
+    if (existing.recordset[0].banned) {
+      return res.status(403).json({ error: 'This account has been removed from the team' });
+    }
     await logLogin(pool, email, email);
     return res.json(toUserJson(existing.recordset[0]));
   }

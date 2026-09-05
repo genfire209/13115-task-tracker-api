@@ -7,6 +7,7 @@ CREATE TABLE Users (
     authProvider NVARCHAR(20) NOT NULL, -- 'google' or 'apple'
     role NVARCHAR(20) NOT NULL DEFAULT 'member', -- 'captain' or 'member'
     subteam NVARCHAR(20) NULL,          -- 'mechanical' | 'outreach' | 'programming' | 'strategy'; NULL = onboarding not complete
+    banned BIT NOT NULL DEFAULT 0,      -- removed from the team by a captain; can no longer log in or appear in rosters
     pushToken NVARCHAR(500) NULL,
     createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
