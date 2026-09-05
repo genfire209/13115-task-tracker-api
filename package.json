@@ -1,0 +1,20 @@
+{
+  "name": "13115-task-tracker-api",
+  "version": "1.0.0",
+  "description": "Azure Functions backend for the FTC Team 13115 task tracker app.",
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.1",
+    "mssql": "^11.0.1",
+    "google-auth-library": "^9.15.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
