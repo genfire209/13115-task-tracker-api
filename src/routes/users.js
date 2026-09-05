@@ -23,7 +23,7 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/pending-approval', asyncHandler(async (req, res) => {
   const pool = await getPool();
   const result = await pool.request().query(`
-    SELECT id, name, email, role, subteam FROM Users
+    SELECT id, name, email, authProvider, role, subteam FROM Users
     WHERE banned = 0 AND approved = 0
     ORDER BY name ASC
   `);
@@ -84,9 +84,9 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/users/:id
-// Body: { role?: 'captain'|'member', name?: string, subteam?: string, banned?: boolean, approved?: boolean }
+// Body: { role?, name?, subteam?, banned?, approved?, pushToken? }
 router.patch('/:id', asyncHandler(async (req, res) => {
-  const { role, name, subteam, banned, approved } = req.body;
+  const { role, name, subteam, banned, approved, pushToken } = req.body;
 
   if (role !== undefined && !['captain', 'member'].includes(role)) {
     return res.status(400).json({ error: 'role must be captain or member' });
@@ -99,7 +99,8 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     name === undefined &&
     subteam === undefined &&
     banned === undefined &&
-    approved === undefined
+    approved === undefined &&
+    pushToken === undefined
   ) {
     return res.status(400).json({ error: 'Nothing to update' });
   }
@@ -127,6 +128,10 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (approved !== undefined) {
     request.input('approved', sql.Bit, approved);
     setClauses.push('approved = @approved');
+  }
+  if (pushToken !== undefined) {
+    request.input('pushToken', sql.NVarChar, pushToken);
+    setClauses.push('pushToken = @pushToken');
   }
 
   await request.query(`UPDATE Users SET ${setClauses.join(', ')} WHERE id = @id`);
