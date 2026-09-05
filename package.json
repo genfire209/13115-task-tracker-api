@@ -9,7 +9,8 @@
   "dependencies": {
     "express": "^4.21.1",
     "mssql": "^11.0.1",
-    "google-auth-library": "^9.15.0"
+    "google-auth-library": "^9.15.0",
+    "firebase-admin": "^13.0.2"
   },
   "engines": {
     "node": ">=20"

@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
+const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
 
 const router = express.Router();
 
@@ -9,6 +10,14 @@ const FK_VIOLATION = 547;
 
 function newId(prefix) {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+async function getTaskTitle(pool, taskId) {
+  const result = await pool
+    .request()
+    .input('id', sql.NVarChar, taskId)
+    .query('SELECT title FROM Tasks WHERE id = @id');
+  return result.recordset[0]?.title || taskId;
 }
 
 async function logEvent(pool, taskId, action, actorId, reason) {
@@ -86,6 +95,14 @@ router.post('/', asyncHandler(async (req, res) => {
     createdBy,
   );
 
+  if (assignedTo && !selfPublished) {
+    sendToUser(assignedTo, {
+      title: 'New task assigned',
+      body: title,
+      data: { taskId: id, type: 'task_assigned' },
+    });
+  }
+
   res.status(201).json({ id, title, description, category, createdBy, assignedTo, status, dueDate });
 }));
 
@@ -118,6 +135,12 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       }
       throw err;
     }
+    const title = await getTaskTitle(pool, taskId);
+    sendToCaptainsAndAdmins({
+      title: 'Volunteer for a declined task',
+      body: `${actorId} wants to take on "${title}"`,
+      data: { taskId, type: 'task_volunteer' },
+    });
     return res.json({ id: taskId });
   }
 
@@ -170,6 +193,29 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
 
   await logEvent(pool, taskId, action, actorId, reason);
+
+  if (action === 'decline') {
+    const title = await getTaskTitle(pool, taskId);
+    sendToCaptainsAndAdmins({
+      title: 'Task declined',
+      body: `${actorId} declined "${title}": ${reason}`,
+      data: { taskId, type: 'task_declined' },
+    });
+  } else if (action === 'reassign') {
+    const title = await getTaskTitle(pool, taskId);
+    sendToUser(newAssigneeId, {
+      title: 'You were assigned a task',
+      body: title,
+      data: { taskId, type: 'task_reassigned' },
+    });
+  } else if (action === 'approve_volunteer') {
+    const title = await getTaskTitle(pool, taskId);
+    sendToUser(newAssigneeId, {
+      title: 'Your request was approved',
+      body: title,
+      data: { taskId, type: 'task_volunteer_approved' },
+    });
+  }
 
   res.json({ id: taskId, status: newStatus });
 }));

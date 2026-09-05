@@ -1,6 +1,7 @@
 const express = require('express');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
+const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
 
 const router = express.Router();
 
@@ -106,6 +107,14 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
 
   const pool = await getPool();
+
+  const existing = await pool
+    .request()
+    .input('id', sql.NVarChar, req.params.id)
+    .query('SELECT name, approved FROM Users WHERE id = @id');
+  const wasApproved = !!existing.recordset[0]?.approved;
+  const currentName = existing.recordset[0]?.name;
+
   const request = pool.request().input('id', sql.NVarChar, req.params.id);
   const setClauses = [];
 
@@ -135,6 +144,22 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
 
   await request.query(`UPDATE Users SET ${setClauses.join(', ')} WHERE id = @id`);
+
+  if (subteam !== undefined && !wasApproved) {
+    sendToCaptainsAndAdmins({
+      title: 'New member needs approval',
+      body: `${name || currentName || req.params.id} completed onboarding`,
+      data: { userId: req.params.id, type: 'member_needs_approval' },
+    });
+  }
+  if (approved === true && !wasApproved) {
+    sendToUser(req.params.id, {
+      title: "You're approved!",
+      body: 'Welcome to the team — you can now see the task board.',
+      data: { type: 'member_approved' },
+    });
+  }
+
   res.json({ id: req.params.id, role, name, subteam, banned, approved });
 }));
 

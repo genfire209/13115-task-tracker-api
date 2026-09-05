@@ -2,11 +2,20 @@ const express = require('express');
 const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
+const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
 
 const router = express.Router();
 
 function newId(prefix) {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+async function getTaskTitle(pool, taskId) {
+  const result = await pool
+    .request()
+    .input('id', sql.NVarChar, taskId)
+    .query('SELECT title FROM Tasks WHERE id = @id');
+  return result.recordset[0]?.title || taskId;
 }
 
 // POST /api/extension-requests
@@ -44,6 +53,13 @@ router.post('/', asyncHandler(async (req, res) => {
       `INSERT INTO TaskEvents (id, taskId, action, actorId, reason)
        VALUES (@id, @taskId, @action, @actorId, @reason)`,
     );
+
+  const title = await getTaskTitle(pool, taskId);
+  sendToCaptainsAndAdmins({
+    title: 'Extension request',
+    body: `${requestedBy} requested more time on "${title}"`,
+    data: { taskId, type: 'extension_requested' },
+  });
 
   res.status(201).json({ id, taskId, requestedBy, newDueDate, reason, status: 'pending' });
 }));
@@ -107,6 +123,13 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       `INSERT INTO TaskEvents (id, taskId, action, actorId)
        VALUES (@id, @taskId, @action, @actorId)`,
     );
+
+  const title = await getTaskTitle(pool, extReq.taskId);
+  sendToUser(extReq.requestedBy, {
+    title: status === 'approved' ? 'Extension approved' : 'Extension denied',
+    body: title,
+    data: { taskId: extReq.taskId, type: `extension_${status}` },
+  });
 
   res.json({ id, status });
 }));
