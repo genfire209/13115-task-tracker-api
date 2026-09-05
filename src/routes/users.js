@@ -1,11 +1,22 @@
 const express = require('express');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
-const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
+const { sendToUser, sendToCaptainsAndAdmins, sendTestNotification } = require('../push');
 
 const router = express.Router();
 
 const SUBTEAMS = ['mechanical', 'outreach', 'programming', 'strategy'];
+
+// POST /api/users/:id/test-notification
+// Debug-only: sends a fixed test push and reports success/failure directly.
+router.post('/:id/test-notification', asyncHandler(async (req, res) => {
+  try {
+    const result = await sendTestNotification(req.params.id);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+}));
 
 // GET /api/users
 // General-purpose roster: approved, non-banned, non-hidden members only.

@@ -71,4 +71,28 @@ async function sendToCaptainsAndAdmins({ title, body, data }) {
   }
 }
 
-module.exports = { sendToUser, sendToCaptainsAndAdmins };
+/**
+ * Debug-only: sends a fixed test push directly and does NOT swallow errors,
+ * so callers can see exactly what firebase-admin/APNs returned.
+ */
+async function sendTestNotification(userId) {
+  if (!ensureInitialized()) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON not set');
+  }
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input('id', sql.NVarChar, userId)
+    .query('SELECT pushToken FROM Users WHERE id = @id');
+  const token = result.recordset[0]?.pushToken;
+  if (!token) {
+    throw new Error(`No pushToken saved for ${userId}`);
+  }
+  const messageId = await admin.messaging().send({
+    token,
+    notification: { title: 'Test notification', body: 'If you see this, push works!' },
+  });
+  return { messageId, tokenPrefix: token.slice(0, 12) };
+}
+
+module.exports = { sendToUser, sendToCaptainsAndAdmins, sendTestNotification };
