@@ -1,0 +1,16 @@
+name: Due date reminders
+
+on:
+  schedule:
+    - cron: '0 * * * *' # hourly
+  workflow_dispatch: {} # allows manual trigger from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger due-date reminder check
+        run: |
+          curl -sf -X POST \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+            https://app-13115-tasktracker.azurewebsites.net/api/cron/due-date-reminders

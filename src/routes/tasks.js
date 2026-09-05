@@ -192,6 +192,8 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (newAssignedTo !== undefined) {
     request.input('assignedTo', sql.NVarChar, newAssignedTo);
     setClause += ', assignedTo = @assignedTo';
+    // New assignee hasn't been reminded about this deadline yet.
+    setClause += ', reminderSentAt = NULL';
   }
 
   try {
@@ -228,6 +230,36 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       title: 'Your request was approved',
       body: title,
       data: { taskId, type: 'task_volunteer_approved' },
+    });
+  } else if (action === 'claim') {
+    const [title, actorName] = await Promise.all([
+      getTaskTitle(pool, taskId),
+      getUserName(pool, actorId),
+    ]);
+    sendToCaptainsAndAdmins({
+      title: 'Task claimed',
+      body: `${actorName} claimed "${title}"`,
+      data: { taskId, type: 'task_claimed' },
+    });
+  } else if (action === 'accept') {
+    const [title, actorName] = await Promise.all([
+      getTaskTitle(pool, taskId),
+      getUserName(pool, actorId),
+    ]);
+    sendToCaptainsAndAdmins({
+      title: 'Task accepted',
+      body: `${actorName} accepted "${title}"`,
+      data: { taskId, type: 'task_accepted' },
+    });
+  } else if (action === 'complete') {
+    const [title, actorName] = await Promise.all([
+      getTaskTitle(pool, taskId),
+      getUserName(pool, actorId),
+    ]);
+    sendToCaptainsAndAdmins({
+      title: 'Task completed',
+      body: `${actorName} completed "${title}"`,
+      data: { taskId, type: 'task_completed' },
     });
   }
 

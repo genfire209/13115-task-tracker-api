@@ -121,7 +121,8 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       .request()
       .input('taskId', sql.NVarChar, extReq.taskId)
       .input('dueDate', sql.DateTime2, extReq.newDueDate)
-      .query('UPDATE Tasks SET dueDate = @dueDate WHERE id = @taskId');
+      // New deadline hasn't had a reminder fire for it yet.
+      .query('UPDATE Tasks SET dueDate = @dueDate, reminderSentAt = NULL WHERE id = @taskId');
   }
 
   await pool

@@ -25,6 +25,7 @@ CREATE TABLE Tasks (
     status NVARCHAR(30) NOT NULL DEFAULT 'open',
     -- 'open' | 'pending_acceptance' | 'accepted' | 'declined' | 'in_progress' | 'completed'
     dueDate DATETIME2 NOT NULL,
+    reminderSentAt DATETIME2 NULL, -- set once a due-soon reminder has fired; reset to NULL on reassignment or due-date change
     createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 

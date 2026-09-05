@@ -3,6 +3,7 @@ const authRouter = require('./src/routes/auth');
 const tasksRouter = require('./src/routes/tasks');
 const extensionRequestsRouter = require('./src/routes/extensionRequests');
 const usersRouter = require('./src/routes/users');
+const cronRouter = require('./src/routes/cron');
 
 const app = express();
 app.use(express.json());
@@ -13,6 +14,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/extension-requests', extensionRequestsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/cron', cronRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
