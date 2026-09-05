@@ -90,7 +90,7 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/tasks/:id
-// Body: { action: 'claim'|'accept'|'decline'|'complete'|'reassign'|'volunteer', actorId, reason?, newAssigneeId? }
+// Body: { action: 'claim'|'accept'|'decline'|'complete'|'reassign'|'approve_volunteer'|'volunteer', actorId, reason?, newAssigneeId? }
 router.patch('/:id', asyncHandler(async (req, res) => {
   const taskId = req.params.id;
   const { action, actorId, reason, newAssigneeId } = req.body;
@@ -101,7 +101,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (action === 'decline' && !reason) {
     return res.status(400).json({ error: 'A reason is required to decline a task' });
   }
-  if (action === 'reassign' && !newAssigneeId) {
+  if ((action === 'reassign' || action === 'approve_volunteer') && !newAssigneeId) {
     return res.status(400).json({ error: 'newAssigneeId is required to reassign a task' });
   }
 
@@ -140,7 +140,13 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       newStatus = 'completed';
       break;
     case 'reassign':
+      // Captain-picked assignee who hasn't opted in yet still has to accept.
       newStatus = 'pending_acceptance';
+      newAssignedTo = newAssigneeId;
+      break;
+    case 'approve_volunteer':
+      // They already said they'd take it, so skip the redundant accept step.
+      newStatus = 'accepted';
       newAssignedTo = newAssigneeId;
       break;
     default:
