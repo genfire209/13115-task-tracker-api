@@ -6,8 +6,13 @@ const asyncHandler = require('../asyncHandler');
 
 const router = express.Router();
 
-// This account always gets the captain role on account creation.
-const CAPTAIN_EMAIL = 'genfire2009@gmail.com';
+// The one account shown to everyone as "Captain".
+const CAPTAIN_EMAIL = '427cmisku@frhsd.com';
+// Full captain-level permissions, but the public-facing role label stays
+// whatever it already is (member, in both cases here).
+const ADMIN_EMAILS = ['genfire2009@gmail.com', '428akotilingala@frhsd.com'];
+// Never appears in any roster, regardless of role/approval.
+const HIDDEN_FROM_ROSTER_EMAILS = ['genfire2009@gmail.com'];
 
 function toUserJson(row) {
   return {
@@ -17,6 +22,8 @@ function toUserJson(row) {
     authProvider: row.authProvider,
     role: row.role,
     subteam: row.subteam,
+    isAdmin: !!row.isAdmin,
+    approved: !!row.approved,
   };
 }
 
@@ -61,6 +68,11 @@ router.post('/login', asyncHandler(async (req, res) => {
   }
 
   const role = email === CAPTAIN_EMAIL ? 'captain' : 'member';
+  const isAdmin = ADMIN_EMAILS.includes(email);
+  const hiddenFromRoster = HIDDEN_FROM_ROSTER_EMAILS.includes(email);
+  // Captains/admins are pre-vetted and don't need to approve themselves in.
+  const approved = role === 'captain' || isAdmin;
+
   await pool
     .request()
     .input('id', sql.NVarChar, email)
@@ -68,13 +80,25 @@ router.post('/login', asyncHandler(async (req, res) => {
     .input('email', sql.NVarChar, email)
     .input('authProvider', sql.NVarChar, provider)
     .input('role', sql.NVarChar, role)
+    .input('isAdmin', sql.Bit, isAdmin)
+    .input('hiddenFromRoster', sql.Bit, hiddenFromRoster)
+    .input('approved', sql.Bit, approved)
     .query(
-      `INSERT INTO Users (id, name, email, authProvider, role)
-       VALUES (@id, @name, @email, @authProvider, @role)`,
+      `INSERT INTO Users (id, name, email, authProvider, role, isAdmin, hiddenFromRoster, approved)
+       VALUES (@id, @name, @email, @authProvider, @role, @isAdmin, @hiddenFromRoster, @approved)`,
     );
   await logLogin(pool, email, email);
 
-  res.status(201).json({ id: email, name, email, authProvider: provider, role, subteam: null });
+  res.status(201).json({
+    id: email,
+    name,
+    email,
+    authProvider: provider,
+    role,
+    subteam: null,
+    isAdmin,
+    approved,
+  });
 }));
 
 module.exports = router;
