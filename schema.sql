@@ -6,6 +6,7 @@ CREATE TABLE Users (
     email NVARCHAR(200) NOT NULL,
     authProvider NVARCHAR(20) NOT NULL, -- 'google' or 'apple'
     role NVARCHAR(20) NOT NULL DEFAULT 'member', -- 'captain' or 'member'
+    subteam NVARCHAR(20) NULL,          -- 'mechanical' | 'outreach' | 'programming' | 'strategy'; NULL = onboarding not complete
     pushToken NVARCHAR(500) NULL,
     createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
@@ -42,6 +43,14 @@ CREATE TABLE ExtensionRequests (
     createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
+CREATE TABLE LoginEvents (
+    id NVARCHAR(50) PRIMARY KEY,
+    userId NVARCHAR(100) NOT NULL REFERENCES Users(id),
+    email NVARCHAR(200) NOT NULL,
+    timestamp DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
 CREATE INDEX IX_Tasks_AssignedTo ON Tasks(assignedTo);
 CREATE INDEX IX_TaskEvents_TaskId ON TaskEvents(taskId);
 CREATE INDEX IX_ExtensionRequests_TaskId ON ExtensionRequests(taskId);
+CREATE INDEX IX_LoginEvents_UserId ON LoginEvents(userId);
