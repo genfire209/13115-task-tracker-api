@@ -6,7 +6,7 @@ CREATE TABLE Users (
     email NVARCHAR(200) NOT NULL,
     authProvider NVARCHAR(20) NOT NULL, -- 'google' or 'apple'
     role NVARCHAR(20) NOT NULL DEFAULT 'member', -- 'captain' or 'member'
-    subteam NVARCHAR(20) NULL,          -- 'mechanical' | 'outreach' | 'programming' | 'strategy'; NULL = onboarding not complete
+    subteam NVARCHAR(100) NULL,         -- comma-separated subset of 'mechanical','outreach','programming','strategy'; NULL = onboarding not complete
     banned BIT NOT NULL DEFAULT 0,      -- removed from the team by a captain; can no longer log in or appear in rosters
     isAdmin BIT NOT NULL DEFAULT 0,     -- full captain-level permissions, independent of the public-facing 'role' label
     hiddenFromRoster BIT NOT NULL DEFAULT 0, -- excluded from every roster/user list, regardless of approval status

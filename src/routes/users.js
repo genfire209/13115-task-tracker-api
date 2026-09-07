@@ -2,10 +2,14 @@ const express = require('express');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { sendToUser, sendToCaptainsAndAdmins, sendTestNotification } = require('../push');
+const { subteamsToDb, subteamsFromDb, isValidSubteamsArray } = require('../subteams');
 
 const router = express.Router();
 
-const SUBTEAMS = ['mechanical', 'outreach', 'programming', 'strategy'];
+function withSubteams(row) {
+  const { subteam, ...rest } = row;
+  return { ...rest, subteams: subteamsFromDb(subteam) };
+}
 
 // POST /api/users/:id/test-notification
 // Debug-only: sends a fixed test push and reports success/failure directly.
@@ -27,7 +31,7 @@ router.get('/', asyncHandler(async (req, res) => {
     WHERE banned = 0 AND approved = 1 AND hiddenFromRoster = 0
     ORDER BY name ASC
   `);
-  res.json(result.recordset);
+  res.json(result.recordset.map(withSubteams));
 }));
 
 // GET /api/users/pending-approval
@@ -39,7 +43,7 @@ router.get('/pending-approval', asyncHandler(async (req, res) => {
     WHERE banned = 0 AND approved = 0
     ORDER BY name ASC
   `);
-  res.json(result.recordset);
+  res.json(result.recordset.map(withSubteams));
 }));
 
 // GET /api/users/login-log?requesterId=...
@@ -74,7 +78,7 @@ router.get('/login-log', asyncHandler(async (req, res) => {
 
   res.json({
     accountCount: accountCount.recordset[0].count,
-    accounts: accounts.recordset,
+    accounts: accounts.recordset.map(withSubteams),
   });
 }));
 
@@ -92,24 +96,30 @@ router.get('/:id', asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
   const row = result.recordset[0];
-  res.json({ ...row, isAdmin: !!row.isAdmin, approved: !!row.approved });
+  res.json({ ...withSubteams(row), isAdmin: !!row.isAdmin, approved: !!row.approved });
 }));
 
 // PATCH /api/users/:id
-// Body: { role?, name?, subteam?, banned?, approved?, pushToken? }
+// Body: { role?, name?, subteams?, banned?, approved?, pushToken? }
+// subteams is a non-empty array of the 4 known subteam strings; a user can
+// belong to more than one. Any signed-in user can update their own via this
+// route, and so can a captain/admin updating someone else's — there's no
+// server-side role check here (matches the rest of this route already).
 router.patch('/:id', asyncHandler(async (req, res) => {
-  const { role, name, subteam, banned, approved, pushToken } = req.body;
+  const { role, name, subteams, banned, approved, pushToken } = req.body;
 
   if (role !== undefined && !['captain', 'member'].includes(role)) {
     return res.status(400).json({ error: 'role must be captain or member' });
   }
-  if (subteam !== undefined && !SUBTEAMS.includes(subteam)) {
-    return res.status(400).json({ error: `subteam must be one of: ${SUBTEAMS.join(', ')}` });
+  if (subteams !== undefined && !isValidSubteamsArray(subteams)) {
+    return res.status(400).json({
+      error: 'subteams must be a non-empty array of: mechanical, outreach, programming, strategy',
+    });
   }
   if (
     role === undefined &&
     name === undefined &&
-    subteam === undefined &&
+    subteams === undefined &&
     banned === undefined &&
     approved === undefined &&
     pushToken === undefined
@@ -137,8 +147,8 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     request.input('name', sql.NVarChar, name);
     setClauses.push('name = @name');
   }
-  if (subteam !== undefined) {
-    request.input('subteam', sql.NVarChar, subteam);
+  if (subteams !== undefined) {
+    request.input('subteam', sql.NVarChar, subteamsToDb(subteams));
     setClauses.push('subteam = @subteam');
   }
   if (banned !== undefined) {
@@ -152,13 +162,11 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (pushToken !== undefined) {
     request.input('pushToken', sql.NVarChar, pushToken);
     setClauses.push('pushToken = @pushToken');
-    // TEMP diagnostic: confirm the client is actually re-registering a token.
-    console.log(`[push] token update for ${req.params.id}: ${pushToken?.slice(0, 12)}...`);
   }
 
   await request.query(`UPDATE Users SET ${setClauses.join(', ')} WHERE id = @id`);
 
-  if (subteam !== undefined && !wasApproved) {
+  if (subteams !== undefined && !wasApproved) {
     sendToCaptainsAndAdmins({
       title: 'New member needs approval',
       body: `${name || currentName || req.params.id} completed onboarding`,
@@ -173,7 +181,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     });
   }
 
-  res.json({ id: req.params.id, role, name, subteam, banned, approved });
+  res.json({ id: req.params.id, role, name, subteams, banned, approved });
 }));
 
 module.exports = router;

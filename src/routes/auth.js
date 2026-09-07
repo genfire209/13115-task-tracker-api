@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const { verifyGoogleToken } = require('../authVerify');
 const asyncHandler = require('../asyncHandler');
+const { subteamsFromDb } = require('../subteams');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ function toUserJson(row) {
     email: row.email,
     authProvider: row.authProvider,
     role: row.role,
-    subteam: row.subteam,
+    subteams: subteamsFromDb(row.subteam),
     isAdmin: !!row.isAdmin,
     approved: !!row.approved,
   };
@@ -95,7 +96,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     email,
     authProvider: provider,
     role,
-    subteam: null,
+    subteams: [],
     isAdmin,
     approved,
   });
