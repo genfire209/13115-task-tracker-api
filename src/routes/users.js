@@ -152,6 +152,8 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (pushToken !== undefined) {
     request.input('pushToken', sql.NVarChar, pushToken);
     setClauses.push('pushToken = @pushToken');
+    // TEMP diagnostic: confirm the client is actually re-registering a token.
+    console.log(`[push] token update for ${req.params.id}: ${pushToken?.slice(0, 12)}...`);
   }
 
   await request.query(`UPDATE Users SET ${setClauses.join(', ')} WHERE id = @id`);
