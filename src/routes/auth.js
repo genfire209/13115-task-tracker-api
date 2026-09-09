@@ -51,7 +51,10 @@ router.post('/login', asyncHandler(async (req, res) => {
     }
   } catch (err) {
     console.error('Token verification failed', err);
-    return res.status(401).json({ error: 'Invalid token' });
+    // TEMP: surface the real reason while debugging the web build's
+    // sign-in — remove once that's sorted, "Invalid token" alone hides
+    // whether this is an audience/expiry/malformed-token issue.
+    return res.status(401).json({ error: 'Invalid token', detail: err.message });
   }
 
   const pool = await getPool();
