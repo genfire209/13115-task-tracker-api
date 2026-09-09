@@ -11,6 +11,7 @@ CREATE TABLE Users (
     isAdmin BIT NOT NULL DEFAULT 0,     -- full captain-level permissions, independent of the public-facing 'role' label
     hiddenFromRoster BIT NOT NULL DEFAULT 0, -- excluded from every roster/user list, regardless of approval status
     approved BIT NOT NULL DEFAULT 1,    -- new members start at 0 and need a captain/admin to approve them in
+    isJunior BIT NOT NULL DEFAULT 0,    -- freshman/junior-team member: sees only tasks assigned to them, no roster, no self-claiming
     pushToken NVARCHAR(500) NULL,
     createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );

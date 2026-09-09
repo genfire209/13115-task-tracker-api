@@ -25,6 +25,7 @@ function toUserJson(row) {
     subteams: subteamsFromDb(row.subteam),
     isAdmin: !!row.isAdmin,
     approved: !!row.approved,
+    isJunior: !!row.isJunior,
   };
 }
 
@@ -99,6 +100,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     subteams: [],
     isAdmin,
     approved,
+    isJunior: false,
   });
 }));
 
