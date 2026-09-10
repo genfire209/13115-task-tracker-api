@@ -1,7 +1,12 @@
 const express = require('express');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
-const { sendToUser, sendToCaptainsAndAdmins, sendTestNotification } = require('../push');
+const {
+  sendToUser,
+  sendToAllUsers,
+  sendToCaptainsAndAdmins,
+  sendTestNotification,
+} = require('../push');
 const { subteamsToDb, subteamsFromDb, isValidSubteamsArray } = require('../subteams');
 
 const router = express.Router();
@@ -20,6 +25,33 @@ router.post('/:id/test-notification', asyncHandler(async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+}));
+
+// POST /api/users/broadcast?requesterId=<captain/admin id>
+// Body: { title, body }. Pushes to every non-banned user with a device
+// token. Gated to captains/admins the same way the login-log route is.
+router.post('/broadcast', asyncHandler(async (req, res) => {
+  const { requesterId } = req.query;
+  const { title, body } = req.body;
+  if (!title || !body) {
+    return res.status(400).json({ error: 'title and body are required' });
+  }
+
+  const pool = await getPool();
+  const requester = requesterId
+    ? await pool
+        .request()
+        .input('id', sql.NVarChar, requesterId)
+        .query('SELECT role, isAdmin FROM Users WHERE id = @id')
+    : null;
+  const hasCaptainAccess =
+    requester?.recordset[0]?.role === 'captain' || !!requester?.recordset[0]?.isAdmin;
+  if (!hasCaptainAccess) {
+    return res.status(403).json({ error: 'Only a captain or admin can broadcast' });
+  }
+
+  const result = await sendToAllUsers({ title, body, data: { type: 'broadcast' } });
+  res.json({ ok: true, ...result });
 }));
 
 // GET /api/users
