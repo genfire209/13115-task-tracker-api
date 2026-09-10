@@ -122,9 +122,11 @@ router.get('/:id', asyncHandler(async (req, res) => {
     .request()
     .input('id', sql.NVarChar, req.params.id)
     .query(
-      'SELECT id, name, email, authProvider, role, subteam, isAdmin, approved, isJunior FROM Users WHERE id = @id',
+      'SELECT id, name, email, authProvider, role, subteam, isAdmin, approved, isJunior FROM Users WHERE id = @id AND banned = 0',
     );
   if (result.recordset.length === 0) {
+    // Also covers a banned account — treat it as gone so the client drops
+    // any locally cached session for them.
     return res.status(404).json({ error: 'User not found' });
   }
   const row = result.recordset[0];
