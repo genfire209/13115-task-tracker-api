@@ -2,7 +2,7 @@ const express = require('express');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { sendToUser, sendToAllUsers } = require('../push');
-const { fetchEventMatches } = require('../ftcScout');
+const { fetchEventMatches } = require('../ftcApi');
 
 const router = express.Router();
 
@@ -102,9 +102,9 @@ router.post('/ftc-match-results', asyncHandler(async (req, res) => {
         .request()
         .input('season', sql.Int, season)
         .input('eventCode', sql.NVarChar, eventCode)
-        .input('matchId', sql.Int, m.id)
+        .input('matchKey', sql.NVarChar, m.matchKey)
         .query(
-          'SELECT 1 AS found FROM NotifiedFtcMatches WHERE season = @season AND eventCode = @eventCode AND matchId = @matchId',
+          'SELECT 1 AS found FROM NotifiedFtcMatches WHERE season = @season AND eventCode = @eventCode AND matchKey = @matchKey',
         );
       if (already.recordset.length > 0) continue;
 
@@ -114,9 +114,9 @@ router.post('/ftc-match-results', asyncHandler(async (req, res) => {
         .request()
         .input('season', sql.Int, season)
         .input('eventCode', sql.NVarChar, eventCode)
-        .input('matchId', sql.Int, m.id)
+        .input('matchKey', sql.NVarChar, m.matchKey)
         .query(
-          'INSERT INTO NotifiedFtcMatches (season, eventCode, matchId) VALUES (@season, @eventCode, @matchId)',
+          'INSERT INTO NotifiedFtcMatches (season, eventCode, matchKey) VALUES (@season, @eventCode, @matchKey)',
         );
       notified++;
     }

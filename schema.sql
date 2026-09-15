@@ -68,9 +68,9 @@ CREATE TABLE WatchedFtcEvents (
 CREATE TABLE NotifiedFtcMatches (
     season INT NOT NULL,
     eventCode NVARCHAR(20) NOT NULL,
-    matchId INT NOT NULL,
+    matchKey NVARCHAR(50) NOT NULL, -- e.g. "QUALIFICATION-0-12" (tournamentLevel-series-matchNumber)
     notifiedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    PRIMARY KEY (season, eventCode, matchId)
+    PRIMARY KEY (season, eventCode, matchKey)
 );
 
 CREATE INDEX IX_Tasks_AssignedTo ON Tasks(assignedTo);

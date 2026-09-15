@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
-const { fetchEventMatches } = require('../ftcScout');
+const { fetchEventMatches } = require('../ftcApi');
 
 const router = express.Router();
 

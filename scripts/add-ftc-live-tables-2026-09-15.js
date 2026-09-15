@@ -36,9 +36,9 @@ async function main() {
       CREATE TABLE NotifiedFtcMatches (
           season INT NOT NULL,
           eventCode NVARCHAR(20) NOT NULL,
-          matchId INT NOT NULL,
+          matchKey NVARCHAR(50) NOT NULL,
           notifiedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-          PRIMARY KEY (season, eventCode, matchId)
+          PRIMARY KEY (season, eventCode, matchKey)
       )
     `);
     console.log('Created NotifiedFtcMatches.');
