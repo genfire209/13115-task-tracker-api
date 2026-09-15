@@ -266,4 +266,41 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   res.json({ id: taskId, status: newStatus });
 }));
 
+// DELETE /api/tasks/:id?requesterId=<admin id>
+// Permanently removes a task and its history (events, extension requests).
+// Admin-only — checked here rather than trusted from the client, since
+// unlike everything else on this route this can't be undone.
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const taskId = req.params.id;
+  const { requesterId } = req.query;
+
+  const pool = await getPool();
+  const requester = requesterId
+    ? await pool
+        .request()
+        .input('id', sql.NVarChar, requesterId)
+        .query('SELECT isAdmin FROM Users WHERE id = @id')
+    : null;
+  if (!requester?.recordset[0]?.isAdmin) {
+    return res.status(403).json({ error: 'Only an admin can delete a task' });
+  }
+
+  await pool.request().input('taskId', sql.NVarChar, taskId).query(
+    'DELETE FROM ExtensionRequests WHERE taskId = @taskId',
+  );
+  await pool.request().input('taskId', sql.NVarChar, taskId).query(
+    'DELETE FROM TaskEvents WHERE taskId = @taskId',
+  );
+  const result = await pool
+    .request()
+    .input('id', sql.NVarChar, taskId)
+    .query('DELETE FROM Tasks WHERE id = @id');
+
+  if (result.rowsAffected[0] === 0) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  res.json({ ok: true });
+}));
+
 module.exports = router;
