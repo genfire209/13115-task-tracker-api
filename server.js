@@ -5,6 +5,7 @@ const tasksRouter = require('./src/routes/tasks');
 const extensionRequestsRouter = require('./src/routes/extensionRequests');
 const usersRouter = require('./src/routes/users');
 const cronRouter = require('./src/routes/cron');
+const ftcLiveRouter = require('./src/routes/ftcLive');
 
 const app = express();
 // Only the browser-based web build needs this — native iOS/Android requests
@@ -36,6 +37,7 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/extension-requests', extensionRequestsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/cron', cronRouter);
+app.use('/api/ftc-live', ftcLiveRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

@@ -56,6 +56,23 @@ CREATE TABLE LoginEvents (
     timestamp DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
+-- FTC live match tracking (hidden feature, not the core task-tracking data).
+CREATE TABLE WatchedFtcEvents (
+    id NVARCHAR(50) PRIMARY KEY,
+    season INT NOT NULL,
+    eventCode NVARCHAR(20) NOT NULL,
+    addedBy NVARCHAR(100) NOT NULL,
+    createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);
+
+CREATE TABLE NotifiedFtcMatches (
+    season INT NOT NULL,
+    eventCode NVARCHAR(20) NOT NULL,
+    matchId INT NOT NULL,
+    notifiedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    PRIMARY KEY (season, eventCode, matchId)
+);
+
 CREATE INDEX IX_Tasks_AssignedTo ON Tasks(assignedTo);
 CREATE INDEX IX_TaskEvents_TaskId ON TaskEvents(taskId);
 CREATE INDEX IX_ExtensionRequests_TaskId ON ExtensionRequests(taskId);
