@@ -11,6 +11,10 @@ const { subteamsToDb, subteamsFromDb, isValidSubteamsArray } = require('../subte
 
 const router = express.Router();
 
+// Changing who's captain is deliberately locked down to one specific
+// account plus a PIN (CAPTAIN_CHANGE_PIN env var) - not just any admin.
+const CAPTAIN_CHANGE_OWNER = '428akotilingala@frhsd.com';
+
 function withSubteams(row) {
   const { subteam, isJunior, ...rest } = row;
   return { ...rest, subteams: subteamsFromDb(subteam), isJunior: !!isJunior };
@@ -134,16 +138,27 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/users/:id
-// Body: { role?, name?, subteams?, banned?, approved?, pushToken?, isJunior? }
+// Body: { role?, name?, subteams?, banned?, approved?, pushToken?, isJunior?, requesterId?, pin? }
 // subteams is a non-empty array of the 4 known subteam strings; a user can
 // belong to more than one. Any signed-in user can update their own via this
 // route, and so can a captain/admin updating someone else's — there's no
 // server-side role check here (matches the rest of this route already).
+// The one exception is `role`: changing who's captain requires requesterId
+// to be CAPTAIN_CHANGE_OWNER and pin to match CAPTAIN_CHANGE_PIN.
 router.patch('/:id', asyncHandler(async (req, res) => {
-  const { role, name, subteams, banned, approved, pushToken, isJunior } = req.body;
+  const { role, name, subteams, banned, approved, pushToken, isJunior, requesterId, pin } = req.body;
 
-  if (role !== undefined && !['captain', 'member'].includes(role)) {
-    return res.status(400).json({ error: 'role must be captain or member' });
+  if (role !== undefined) {
+    if (!['captain', 'member'].includes(role)) {
+      return res.status(400).json({ error: 'role must be captain or member' });
+    }
+    if (requesterId !== CAPTAIN_CHANGE_OWNER) {
+      return res.status(403).json({ error: 'Only the team owner can change who is captain' });
+    }
+    const expectedPin = process.env.CAPTAIN_CHANGE_PIN;
+    if (!expectedPin || pin !== expectedPin) {
+      return res.status(403).json({ error: 'Incorrect PIN' });
+    }
   }
   if (subteams !== undefined && !isValidSubteamsArray(subteams)) {
     return res.status(400).json({
