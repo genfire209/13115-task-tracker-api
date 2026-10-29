@@ -41,7 +41,7 @@ router.get('/', asyncHandler(async (req, res) => {
       weAttend: ourCodes.includes(e.code),
       isActive: !!active && active.season === season && active.eventCode === e.code,
     })),
-    active,
+    active: active && { ...active, eventName: events.find((e) => e.code === active.eventCode)?.name ?? null },
   });
 }));
 
