@@ -10,7 +10,8 @@
 // played there is no estimate, and no timed alerts.
 const crypto = require('crypto');
 const { sql, getPool } = require('./db');
-const { fetchEventMatches } = require('./ftcApi');
+const { fetchEventMatches, fetchScoreDetails } = require('./ftcApi');
+const { rankingPoints } = require('./scoreDetails');
 const { sendToTeam, sendToUser } = require('./push');
 
 const OUR_TEAM = Number(process.env.OUR_TEAM_NUMBER) || 13115;
@@ -118,6 +119,26 @@ function withEstimates(matches) {
   });
 }
 
+/** The breakdown for one played match, or null if FIRST hasn't posted it. */
+async function breakdownFor(season, code, match) {
+  if (!match.hasBeenPlayed) return null;
+  const level = match.tournamentLevel === 'QUALIFICATION' ? 'qual' : 'playoff';
+  const [series, number] = match.matchKey.split('-').slice(-2);
+  const scores = await fetchScoreDetails(season, code, level).catch(() => null);
+  const breakdown = scores?.[`${series}-${number}`];
+  if (!breakdown) return null;
+
+  // FIRST says "Robot 1" / "Robot 2": the alliance's station 1 and 2 teams.
+  for (const [alliance, side] of [['Red', breakdown.red], ['Blue', breakdown.blue]]) {
+    const teams = match.teams
+      .filter((t) => t.alliance === alliance)
+      .sort((a, b) => (a.station ?? 0) - (b.station ?? 0));
+    side.auto.robots.forEach((r, i) => (r.teamNumber = teams[i]?.teamNumber ?? null));
+    side.teleop.robots.forEach((r, i) => (r.teamNumber = teams[i]?.teamNumber ?? null));
+  }
+  return breakdown;
+}
+
 function hasTeam(match, teamNumber) {
   return match.teams.some((t) => t.teamNumber === teamNumber);
 }
@@ -148,15 +169,30 @@ function warningMessage(match, teamNumber, minutes) {
   };
 }
 
-function resultMessage(match, teamNumber) {
+/** "+4 RP (win, SWARM)", or '' when FIRST hasn't posted the breakdown yet. */
+function rankingPointsText(match, alliance, breakdown) {
+  const rp = rankingPoints(match, alliance, breakdown);
+  if (!rp.bonusKnown) return '';
+  const parts = [
+    rp.win === 3 && 'win',
+    rp.win === 1 && 'tie',
+    rp.swarm && 'SWARM',
+    rp.pollinator1 && 'POLLINATOR 1',
+    rp.pollinator2 && 'POLLINATOR 2',
+  ].filter(Boolean);
+  return `+${rp.total} RP${parts.length ? ` (${parts.join(', ')})` : ''}`;
+}
+
+function resultMessage(match, teamNumber, breakdown = null) {
   const { alliance } = ourSide(match, teamNumber);
   const ours = alliance === 'Red' ? match.redScore : match.blueScore;
   const theirs = alliance === 'Red' ? match.blueScore : match.redScore;
   const outcome = ours > theirs ? 'We won' : ours < theirs ? 'We lost' : 'Tie';
   const teams = (side) => match.teams.filter((t) => t.alliance === side).map((t) => t.teamNumber).join(', ');
+  const rp = rankingPointsText(match, alliance, breakdown);
   return {
     title: `${shortLabel(match)}: ${outcome} ${ours}-${theirs}`,
-    body: `Red: ${teams('Red')} | Blue: ${teams('Blue')}`,
+    body: `Red: ${teams('Red')} | Blue: ${teams('Blue')}${rp ? ` · ${rp}` : ''}`,
   };
 }
 
@@ -195,9 +231,11 @@ function notify(meet, { title, body }, type) {
   return meet.testOnly ? sendToUser(meet.startedBy, message) : sendToTeam(message);
 }
 
+// `message` may be a function, so any lookups it needs only happen for
+// alerts that are actually going out.
 async function alertOnce(pool, meet, matchKey, kind, message, type) {
   if (await claim(pool, meet, matchKey, kind)) {
-    await notify(meet, message, type);
+    await notify(meet, typeof message === 'function' ? await message() : message, type);
     return 1;
   }
   return 0;
@@ -283,7 +321,9 @@ async function runMeetTick({ now = new Date() } = {}) {
   for (const m of ours) {
     if (m.hasBeenPlayed) {
       if (m.redScore !== null && m.blueScore !== null) {
-        sent += await alertOnce(pool, meet, m.matchKey, 'result', resultMessage(m, meet.teamNumber), 'meet_result');
+        const message = async () =>
+          resultMessage(m, meet.teamNumber, await breakdownFor(meet.season, meet.eventCode, m));
+        sent += await alertOnce(pool, meet, m.matchKey, 'result', message, 'meet_result');
       }
       continue;
     }
@@ -310,4 +350,6 @@ module.exports = {
   startMeet,
   endMeet,
   runMeetTick,
+  breakdownFor,
+  resultMessage,
 };

@@ -8,6 +8,8 @@
 // silently interpret them as the SERVER's own timezone, not the venue's).
 // Every time value here stays a raw venue-local string; meetAlerts.js does
 // its arithmetic on the wall-clock fields, never as an instant.
+const { normalizeMatchScores } = require('./scoreDetails');
+
 const BASE = 'https://ftc-api.firstinspires.org/v2.0';
 
 function authHeader() {
@@ -68,6 +70,7 @@ async function fetchLevel(season, eventCode, level) {
     const result = resultsByKey.get(key);
     return {
       matchKey: key,
+      series: s.series,
       matchNum: s.matchNumber,
       tournamentLevel: s.tournamentLevel,
       description: s.description,
@@ -77,6 +80,7 @@ async function fetchLevel(season, eventCode, level) {
       postResultTime: result?.postResultTime ?? null,
       teams: s.teams.map((t) => ({
         alliance: allianceFromStation(t.station),
+        station: parseInt(String(t.station).replace(/\D/g, ''), 10) || null, // Red1 -> 1: "Robot 1"
         teamNumber: t.teamNumber,
         teamName: t.teamName ?? null,
       })),
@@ -116,6 +120,16 @@ function fetchEventMatches(season, eventCode) {
       matches: [...qual, ...playoff],
     };
   });
+}
+
+/**
+ * Full score breakdowns for one round ('qual' or 'playoff') of an event,
+ * keyed "series-matchNumber" (see scoreDetails.js).
+ */
+function fetchScoreDetails(season, eventCode, level) {
+  return cached(`scores:${season}:${eventCode}:${level}`, 30 * 1000, async () =>
+    normalizeMatchScores(await get(`/${season}/scores/${eventCode}/${level}`)),
+  );
 }
 
 /** Qualification rankings for an event, best first ([] before any are posted). */
@@ -163,4 +177,4 @@ function fetchTeamEventCodes(season, teamNumber) {
   });
 }
 
-module.exports = { fetchEventMatches, fetchRankings, fetchRegionEvents, fetchTeamEventCodes };
+module.exports = { fetchEventMatches, fetchScoreDetails, fetchRankings, fetchRegionEvents, fetchTeamEventCodes };

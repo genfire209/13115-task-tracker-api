@@ -82,3 +82,31 @@ test('meet routes always need a real session, even with legacy clients allowed',
   assert.equal((await call('GET', '/api/meets', { base: LEGACY })).status, 401);
   assert.equal((await call('POST', '/api/meets/active', { base: LEGACY, body: { season: 2026, eventCode: 'USNJSOM1' } })).status, 401);
 });
+
+test('a played match has the full FIRST breakdown, robots matched to teams', async () => {
+  const r = await call('GET', '/api/meets/2026/USNJSOM1/matches/QUALIFICATION-0-8', { as: 'bob@x.com' });
+  assert.equal(r.status, 200);
+  const { red, blue, flowers } = r.body.breakdown;
+  // The numbers on https://ftc-events.firstinspires.org/2026/USNJSOM1/qualifications/8
+  assert.deepEqual([red.auto.points, red.teleop.points, red.penaltyPoints, red.total], [3, 34, 0, 37]);
+  assert.deepEqual([blue.auto.points, blue.teleop.points, blue.penaltyPoints, blue.total], [8, 18, 0, 26]);
+  assert.deepEqual(red.auto.robots, [
+    { leave: true, park: false, teamNumber: 36975 },
+    { leave: false, park: false, teamNumber: 10974 },
+  ]);
+  assert.deepEqual(blue.auto.robots[0], { leave: true, park: true, teamNumber: 32294 });
+  assert.deepEqual([red.teleop.tips, red.teleop.hiveBalls, blue.teleop.hiveBalls, blue.teleop.gardenBalls], [1, 2, 3, 2]);
+  assert.deepEqual(flowers, { redWall: [], scoring: [], blueWall: [], audience: [] });
+  // Red won but missed SWARM (3 + 0 + 10 < 16); blue lost but got it (3 + 5 + 10).
+  assert.deepEqual(r.body.rankingPoints.red, { win: 3, swarm: false, pollinator1: false, pollinator2: false, total: 3, bonusKnown: true });
+  assert.deepEqual(r.body.rankingPoints.blue, { win: 0, swarm: true, pollinator1: false, pollinator2: false, total: 1, bonusKnown: true });
+});
+
+test('a match without a posted breakdown still shows its score', async () => {
+  const r = await call('GET', '/api/meets/2026/USNJSOM1/matches/QUALIFICATION-0-1', { as: 'bob@x.com' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.breakdown, null);
+  assert.equal(r.body.match.redScore, 48);
+  assert.equal(r.body.rankingPoints.red.bonusKnown, false);
+  assert.equal((await call('GET', '/api/meets/2026/USNJSOM1/matches/QUALIFICATION-0-99', { as: 'bob@x.com' })).status, 404);
+});

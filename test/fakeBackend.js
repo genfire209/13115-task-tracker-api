@@ -114,8 +114,12 @@ stub('authVerify.js', { verifyGoogleToken: async (idToken) => ({ email: idToken,
 
 // FIRST's API, replaying fixtures/USNJSOM1.json: a match counts as played
 // once the venue clock passes its real postResultTime. With no clock set,
-// every match is played.
+// every match is played. Only Q8 has a score breakdown
+// (fixtures/USNJSOM1-scores-qual.json, copied from its FIRST match page,
+// whose team order also gave Q8's stations).
 const fixture = require('./fixtures/USNJSOM1.json');
+const scoresFixture = require('./fixtures/USNJSOM1-scores-qual.json');
+const { normalizeMatchScores } = require('../src/scoreDetails');
 const fakeFtc = {
   venueTime: process.env.FAKE_VENUE_TIME || null,
   setVenueTime(t) {
@@ -133,6 +137,13 @@ const fakeFtc = {
 };
 stub('ftcApi.js', {
   fetchEventMatches: async (season, code) => (season === 2026 && code === 'USNJSOM1' ? fakeFtc.event() : null),
+  fetchScoreDetails: async (season, code, level) => {
+    if (season !== 2026 || code !== 'USNJSOM1' || level !== 'qual') return {};
+    const played = new Set(fakeFtc.event().matches.filter((m) => m.hasBeenPlayed).map((m) => m.matchNum));
+    return normalizeMatchScores({
+      matchScores: scoresFixture.matchScores.filter((m) => played.has(m.matchNumber)),
+    });
+  },
   fetchRankings: async () => [],
   fetchRegionEvents: async () => [
     { code: 'USNJSOM1', name: fixture.name, dateStart: '2026-10-24T00:00:00', dateEnd: '2026-10-24T00:00:00' },

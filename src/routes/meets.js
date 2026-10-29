@@ -3,7 +3,16 @@ const { getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { requireCaptainAccess } = require('../authenticate');
 const { fetchEventMatches, fetchRankings, fetchRegionEvents, fetchTeamEventCodes } = require('../ftcApi');
-const { OUR_TEAM, currentSeason, withEstimates, hasTeam, getActiveMeet, startMeet } = require('../meetAlerts');
+const { rankingPoints } = require('../scoreDetails');
+const {
+  OUR_TEAM,
+  currentSeason,
+  withEstimates,
+  hasTeam,
+  getActiveMeet,
+  startMeet,
+  breakdownFor,
+} = require('../meetAlerts');
 
 const router = express.Router();
 
@@ -89,6 +98,33 @@ router.get('/:season/:code', asyncHandler(async (req, res) => {
     waitingForFirstMatch: !event.matches.some((m) => m.hasBeenPlayed),
     matches: withEstimates(event.matches),
     rankings,
+  });
+}));
+
+// GET /api/meets/:season/:code/matches/:matchKey
+// One match in full, like its page on ftc-events.firstinspires.org: the
+// auto / teleop / penalty split, what each robot did, HIVE, GARDEN and
+// FLOWER contents, and the ranking points each alliance earned.
+router.get('/:season/:code/matches/:matchKey', asyncHandler(async (req, res) => {
+  const season = parseInt(req.params.season, 10);
+  const code = String(req.params.code).toUpperCase();
+  const pool = await getPool();
+  const [event, active] = await Promise.all([fetchEventMatches(season, code), visibleActiveMeet(pool, req.user)]);
+  const match = event && withEstimates(event.matches).find((m) => m.matchKey === req.params.matchKey);
+  if (!match) return res.status(404).json({ error: 'Match not found' });
+
+  const breakdown = await breakdownFor(season, code, match);
+  const isActive = !!active && active.season === season && active.eventCode === code;
+  res.json({
+    season,
+    eventCode: code,
+    eventName: event.name,
+    ourTeam: isActive ? active.teamNumber : OUR_TEAM,
+    match,
+    breakdown,
+    rankingPoints: match.hasBeenPlayed
+      ? { red: rankingPoints(match, 'Red', breakdown), blue: rankingPoints(match, 'Blue', breakdown) }
+      : null,
   });
 }));
 

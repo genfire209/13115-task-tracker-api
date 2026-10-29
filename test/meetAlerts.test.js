@@ -110,3 +110,14 @@ test('meet mode switches itself off after the meet', async () => {
   assert.equal(result.ended, true);
   assert.ok(tables.ActiveMeets[0].endedAt);
 });
+
+test('result alerts say which ranking points we earned', () => {
+  const { resultMessage } = require('../src/meetAlerts');
+  const { normalizeMatchScores } = require('../src/scoreDetails');
+  const q8 = fixture.matches.find((m) => m.matchNum === 8);
+  const breakdown = normalizeMatchScores(require('./fixtures/USNJSOM1-scores-qual.json'))['0-8'];
+  assert.equal(resultMessage(q8, 32294, breakdown).title, 'Q8: We lost 26-37');
+  assert.match(resultMessage(q8, 32294, breakdown).body, /\+1 RP \(SWARM\)$/);
+  assert.match(resultMessage(q8, 36975, breakdown).body, /\+3 RP \(win\)$/);
+  assert.doesNotMatch(resultMessage(q8, 36975, null).body, /RP/);
+});

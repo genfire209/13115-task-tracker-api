@@ -257,22 +257,26 @@
     {
      "alliance": "Blue",
      "teamNumber": 31127,
-     "teamName": null
+     "teamName": null,
+     "station": 2
     },
     {
      "alliance": "Blue",
      "teamNumber": 32294,
-     "teamName": null
+     "teamName": null,
+     "station": 1
     },
     {
      "alliance": "Red",
      "teamNumber": 36975,
-     "teamName": null
+     "teamName": null,
+     "station": 1
     },
     {
      "alliance": "Red",
      "teamNumber": 10974,
-     "teamName": null
+     "teamName": null,
+     "station": 2
     }
    ],
    "redScore": 37,
