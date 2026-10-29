@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { fetchEventMatches } = require('../ftcApi');
+const { actorIdFor } = require('../authenticate');
 
 const router = express.Router();
 
@@ -34,9 +35,10 @@ router.get('/watched', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/ftc-live/watched
-// Body: { season, eventCode, requesterId }
+// Body: { season, eventCode }
 router.post('/watched', asyncHandler(async (req, res) => {
-  const { season, eventCode, requesterId } = req.body;
+  const { season, eventCode } = req.body;
+  const requesterId = actorIdFor(req, req.body.requesterId);
   if (!season || !eventCode || !requesterId) {
     return res.status(400).json({ error: 'season, eventCode, and requesterId are required' });
   }

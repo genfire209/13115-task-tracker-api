@@ -6,6 +6,7 @@ const extensionRequestsRouter = require('./src/routes/extensionRequests');
 const usersRouter = require('./src/routes/users');
 const cronRouter = require('./src/routes/cron');
 const ftcLiveRouter = require('./src/routes/ftcLive');
+const { authenticate, requireApproved } = require('./src/authenticate');
 
 const app = express();
 // Only the browser-based web build needs this — native iOS/Android requests
@@ -32,12 +33,18 @@ app.use(express.json());
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// Open: login hands out the session token; cron has its own shared secret.
 app.use('/api/auth', authRouter);
-app.use('/api/tasks', tasksRouter);
-app.use('/api/extension-requests', extensionRequestsRouter);
-app.use('/api/users', usersRouter);
 app.use('/api/cron', cronRouter);
-app.use('/api/ftc-live', ftcLiveRouter);
+
+// Everything below needs a session token (see src/authenticate.js).
+app.use('/api', authenticate);
+app.use('/api/tasks', requireApproved, tasksRouter);
+app.use('/api/extension-requests', requireApproved, extensionRequestsRouter);
+// Gated per route: members still onboarding or awaiting approval need to
+// read and update their own record.
+app.use('/api/users', usersRouter);
+app.use('/api/ftc-live', requireApproved, ftcLiveRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

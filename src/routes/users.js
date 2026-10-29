@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const {
@@ -8,12 +9,42 @@ const {
   sendTestNotification,
 } = require('../push');
 const { subteamsToDb, subteamsFromDb, isValidSubteamsArray } = require('../subteams');
+const {
+  requireApproved,
+  requireCaptainAccess,
+  actorIdFor,
+  permitted,
+  hasCaptainAccess,
+} = require('../authenticate');
 
 const router = express.Router();
 
 // Changing who's captain is deliberately locked down to one specific
 // account plus a PIN (CAPTAIN_CHANGE_PIN env var) - not just any admin.
 const CAPTAIN_CHANGE_OWNER = '428akotilingala@frhsd.com';
+
+// Wrong PINs lock the captain change for a while, so the PIN can't be
+// brute-forced. In memory: the API runs as a single instance.
+const PIN_MAX_FAILURES = 5;
+const PIN_LOCKOUT_MS = 15 * 60 * 1000;
+const pinFailures = new Map(); // requesterId -> { count, since }
+
+function pinLockedOut(requesterId) {
+  const entry = pinFailures.get(requesterId);
+  if (entry && Date.now() - entry.since > PIN_LOCKOUT_MS) pinFailures.delete(requesterId);
+  return (pinFailures.get(requesterId)?.count || 0) >= PIN_MAX_FAILURES;
+}
+
+function recordPinFailure(requesterId) {
+  const entry = pinFailures.get(requesterId);
+  if (entry) entry.count++;
+  else pinFailures.set(requesterId, { count: 1, since: Date.now() });
+}
+
+function pinMatches(given, expected) {
+  const digest = (v) => crypto.createHash('sha256').update(String(v)).digest();
+  return crypto.timingSafeEqual(digest(given), digest(expected));
+}
 
 function withSubteams(row) {
   const { subteam, isJunior, ...rest } = row;
@@ -22,7 +53,11 @@ function withSubteams(row) {
 
 // POST /api/users/:id/test-notification
 // Debug-only: sends a fixed test push and reports success/failure directly.
+// To your own device, or anyone's for an admin.
 router.post('/:id/test-notification', asyncHandler(async (req, res) => {
+  if (!permitted(req, req.user?.id === req.params.id || !!req.user?.isAdmin)) {
+    return res.status(403).json({ error: 'You can only test your own notifications' });
+  }
   try {
     const result = await sendTestNotification(req.params.id);
     res.json({ ok: true, ...result });
@@ -31,11 +66,11 @@ router.post('/:id/test-notification', asyncHandler(async (req, res) => {
   }
 }));
 
-// POST /api/users/broadcast?requesterId=<captain/admin id>
+// POST /api/users/broadcast
 // Body: { title, body }. Pushes to every non-banned user with a device
-// token. Gated to captains/admins the same way the login-log route is.
+// token. Captains/admins only.
 router.post('/broadcast', asyncHandler(async (req, res) => {
-  const { requesterId } = req.query;
+  const requesterId = actorIdFor(req, req.query.requesterId);
   const { title, body } = req.body;
   if (!title || !body) {
     return res.status(400).json({ error: 'title and body are required' });
@@ -60,7 +95,7 @@ router.post('/broadcast', asyncHandler(async (req, res) => {
 
 // GET /api/users
 // General-purpose roster: approved, non-banned, non-hidden members only.
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', requireApproved, asyncHandler(async (req, res) => {
   const pool = await getPool();
   const result = await pool.request().query(`
     SELECT id, name, email, authProvider, role, subteam, isJunior FROM Users
@@ -72,7 +107,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // GET /api/users/pending-approval
 // New members waiting on a captain/admin to let them in.
-router.get('/pending-approval', asyncHandler(async (req, res) => {
+router.get('/pending-approval', requireCaptainAccess, asyncHandler(async (req, res) => {
   const pool = await getPool();
   const result = await pool.request().query(`
     SELECT id, name, email, authProvider, role, subteam, isJunior FROM Users
@@ -82,10 +117,10 @@ router.get('/pending-approval', asyncHandler(async (req, res) => {
   res.json(result.recordset.map(withSubteams));
 }));
 
-// GET /api/users/login-log?requesterId=...
+// GET /api/users/login-log
 // Captains/admins see every account's login activity; everyone else sees only their own.
 router.get('/login-log', asyncHandler(async (req, res) => {
-  const { requesterId } = req.query;
+  const requesterId = actorIdFor(req, req.query.requesterId);
   const pool = await getPool();
 
   const accountCount = await pool
@@ -120,7 +155,11 @@ router.get('/login-log', asyncHandler(async (req, res) => {
 
 // GET /api/users/:id
 // Single-user lookup, used by the client to refresh its own approval status.
+// Your own record, or anyone's for a captain/admin.
 router.get('/:id', asyncHandler(async (req, res) => {
+  if (!permitted(req, req.user?.id === req.params.id || hasCaptainAccess(req.user))) {
+    return res.status(403).json({ error: 'Not allowed' });
+  }
   const pool = await getPool();
   const result = await pool
     .request()
@@ -138,15 +177,25 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/users/:id
-// Body: { role?, name?, subteams?, banned?, approved?, pushToken?, isJunior?, requesterId?, pin? }
+// Body: { role?, name?, subteams?, banned?, approved?, pushToken?, isJunior?, pin? }
 // subteams is a non-empty array of the 4 known subteam strings; a user can
-// belong to more than one. Any signed-in user can update their own via this
-// route, and so can a captain/admin updating someone else's — there's no
-// server-side role check here (matches the rest of this route already).
-// The one exception is `role`: changing who's captain requires requesterId
-// to be CAPTAIN_CHANGE_OWNER and pin to match CAPTAIN_CHANGE_PIN.
+// belong to more than one. You can change your own name, subteams and
+// device token; captains/admins can also rename, re-team, approve, remove
+// and move other members between junior and main. `role` (who's captain)
+// is limited to CAPTAIN_CHANGE_OWNER with the CAPTAIN_CHANGE_PIN.
 router.patch('/:id', asyncHandler(async (req, res) => {
-  const { role, name, subteams, banned, approved, pushToken, isJunior, requesterId, pin } = req.body;
+  const { role, name, subteams, banned, approved, pushToken, isJunior, pin } = req.body;
+  const requesterId = actorIdFor(req, req.body.requesterId);
+
+  if (!req.legacy) {
+    const isSelf = req.user.id === req.params.id;
+    const captain = hasCaptainAccess(req.user);
+    const changesProfile = name !== undefined || subteams !== undefined;
+    const changesMembership = banned !== undefined || approved !== undefined || isJunior !== undefined;
+    if ((pushToken !== undefined && !isSelf) || (changesProfile && !isSelf && !captain) || (changesMembership && !captain)) {
+      return res.status(403).json({ error: "You can't change that for this account" });
+    }
+  }
 
   if (role !== undefined) {
     if (!['captain', 'member'].includes(role)) {
@@ -155,10 +204,15 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     if (requesterId !== CAPTAIN_CHANGE_OWNER) {
       return res.status(403).json({ error: 'Only the team owner can change who is captain' });
     }
+    if (pinLockedOut(requesterId)) {
+      return res.status(429).json({ error: 'Too many wrong PINs - try again in 15 minutes' });
+    }
     const expectedPin = process.env.CAPTAIN_CHANGE_PIN;
-    if (!expectedPin || pin !== expectedPin) {
+    if (!expectedPin || !pinMatches(pin, expectedPin)) {
+      recordPinFailure(requesterId);
       return res.status(403).json({ error: 'Incorrect PIN' });
     }
+    pinFailures.delete(requesterId);
   }
   if (subteams !== undefined && !isValidSubteamsArray(subteams)) {
     return res.status(400).json({
@@ -178,6 +232,16 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
 
   const pool = await getPool();
+
+  // A device token belongs to one phone: if another account signed in on
+  // this phone before, stop sending that account's pushes here.
+  if (pushToken) {
+    await pool
+      .request()
+      .input('id', sql.NVarChar, req.params.id)
+      .input('pushToken', sql.NVarChar, pushToken)
+      .query('UPDATE Users SET pushToken = NULL WHERE pushToken = @pushToken AND id <> @id');
+  }
 
   const existing = await pool
     .request()

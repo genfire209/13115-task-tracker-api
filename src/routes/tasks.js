@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
+const { actorIdFor, permitted, hasCaptainAccess } = require('../authenticate');
 
 const router = express.Router();
 
@@ -26,6 +27,30 @@ async function getUserName(pool, userId) {
     .input('id', sql.NVarChar, userId)
     .query('SELECT name FROM Users WHERE id = @id');
   return result.recordset[0]?.name || userId;
+}
+
+// Who may take each action - mirrors what the app offers on the task screen.
+function canTakeAction(user, task, action) {
+  const isAssignee = task.assignedTo === user.id;
+  const captain = hasCaptainAccess(user);
+  switch (action) {
+    case 'claim':
+      return task.status === 'open' && !user.isJunior;
+    case 'volunteer':
+      return task.status === 'declined' && !user.isJunior;
+    case 'accept':
+      return task.status === 'pending_acceptance' && isAssignee;
+    case 'decline':
+      return isAssignee && ['pending_acceptance', 'accepted', 'in_progress'].includes(task.status);
+    case 'complete':
+      return (isAssignee || captain) && ['accepted', 'in_progress'].includes(task.status);
+    case 'reassign':
+      return captain && task.status !== 'completed';
+    case 'approve_volunteer':
+      return captain && task.status === 'declined';
+    default:
+      return true; // unknown actions get a 400 further down
+  }
 }
 
 async function logEvent(pool, taskId, action, actorId, reason) {
@@ -60,12 +85,18 @@ router.get('/:id/events', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/tasks
-// Body: { title, description, category, createdBy, assignedTo, dueDate }
+// Body: { title, description, category, assignedTo, dueDate }
+// The creator is whoever is signed in. Captains/admins can assign anyone;
+// members can only publish a task for themselves or leave it open.
 router.post('/', asyncHandler(async (req, res) => {
-  const { title, description, category, createdBy, assignedTo, dueDate } = req.body;
+  const { title, description, category, assignedTo, dueDate } = req.body;
+  const createdBy = actorIdFor(req, req.body.createdBy);
 
   if (!title || !category || !createdBy || !dueDate) {
     return res.status(400).json({ error: 'Missing required fields' });
+  }
+  if (!permitted(req, hasCaptainAccess(req.user) || !assignedTo || assignedTo === createdBy)) {
+    return res.status(403).json({ error: 'Only a captain or admin can assign tasks to someone else' });
   }
 
   const selfPublished = assignedTo && assignedTo === createdBy;
@@ -115,10 +146,12 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/tasks/:id
-// Body: { action: 'claim'|'accept'|'decline'|'complete'|'reassign'|'approve_volunteer'|'volunteer', actorId, reason?, newAssigneeId? }
+// Body: { action: 'claim'|'accept'|'decline'|'complete'|'reassign'|'approve_volunteer'|'volunteer', reason?, newAssigneeId? }
+// The actor is whoever is signed in; see canTakeAction for who may do what.
 router.patch('/:id', asyncHandler(async (req, res) => {
   const taskId = req.params.id;
-  const { action, actorId, reason, newAssigneeId } = req.body;
+  const { action, reason, newAssigneeId } = req.body;
+  const actorId = actorIdFor(req, req.body.actorId);
 
   if (!action || !actorId) {
     return res.status(400).json({ error: 'Missing action or actorId' });
@@ -131,6 +164,20 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
 
   const pool = await getPool();
+
+  if (!req.legacy) {
+    const found = await pool
+      .request()
+      .input('id', sql.NVarChar, taskId)
+      .query('SELECT status, assignedTo FROM Tasks WHERE id = @id');
+    const task = found.recordset[0];
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    if (!canTakeAction(req.user, task, action)) {
+      return res.status(403).json({ error: "You can't do that on this task" });
+    }
+  }
 
   // 'volunteer' just records interest on a declined task for the captain to
   // review; it doesn't change the task's status or assignee.
@@ -266,13 +313,12 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   res.json({ id: taskId, status: newStatus });
 }));
 
-// DELETE /api/tasks/:id?requesterId=<admin id>
+// DELETE /api/tasks/:id
 // Permanently removes a task and its history (events, extension requests).
-// Admin-only — checked here rather than trusted from the client, since
-// unlike everything else on this route this can't be undone.
+// Admin-only, since unlike everything else on this route it can't be undone.
 router.delete('/:id', asyncHandler(async (req, res) => {
   const taskId = req.params.id;
-  const { requesterId } = req.query;
+  const requesterId = actorIdFor(req, req.query.requesterId);
 
   const pool = await getPool();
   const requester = requesterId

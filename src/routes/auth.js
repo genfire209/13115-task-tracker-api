@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const { verifyGoogleToken } = require('../authVerify');
+const { createSessionToken } = require('../session');
 const asyncHandler = require('../asyncHandler');
 const { subteamsFromDb } = require('../subteams');
 
@@ -40,6 +41,8 @@ async function logLogin(pool, userId, email) {
 
 // POST /api/auth/login
 // Body: { provider: 'google', idToken: string, name?: string }
+// Returns the user plus `sessionToken`, which every other request must send
+// as `Authorization: Bearer <sessionToken>`.
 router.post('/login', asyncHandler(async (req, res) => {
   const { provider, idToken } = req.body;
 
@@ -66,7 +69,7 @@ router.post('/login', asyncHandler(async (req, res) => {
       return res.status(403).json({ error: 'This account has been removed from the team' });
     }
     await logLogin(pool, email, email);
-    return res.json(toUserJson(existing.recordset[0]));
+    return res.json({ ...toUserJson(existing.recordset[0]), sessionToken: createSessionToken(email) });
   }
 
   const role = email === CAPTAIN_EMAIL ? 'captain' : 'member';
@@ -101,6 +104,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     isAdmin,
     approved,
     isJunior: false,
+    sessionToken: createSessionToken(email),
   });
 }));
 

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
+const { actorIdFor, requireCaptainAccess } = require('../authenticate');
 
 const router = express.Router();
 
@@ -27,9 +28,10 @@ async function getUserName(pool, userId) {
 }
 
 // POST /api/extension-requests
-// Body: { taskId, requestedBy, newDueDate, reason }
+// Body: { taskId, newDueDate, reason }. Only the task's assignee can ask.
 router.post('/', asyncHandler(async (req, res) => {
-  const { taskId, requestedBy, newDueDate, reason } = req.body;
+  const { taskId, newDueDate, reason } = req.body;
+  const requestedBy = actorIdFor(req, req.body.requestedBy);
 
   if (!taskId || !requestedBy || !newDueDate || !reason) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -37,6 +39,17 @@ router.post('/', asyncHandler(async (req, res) => {
 
   const id = newId('ext');
   const pool = await getPool();
+
+  if (!req.legacy) {
+    const task = await pool
+      .request()
+      .input('id', sql.NVarChar, taskId)
+      .query('SELECT assignedTo, status FROM Tasks WHERE id = @id');
+    const row = task.recordset[0];
+    if (!row || row.assignedTo !== requestedBy || row.status === 'completed') {
+      return res.status(403).json({ error: 'Only the person doing this task can ask for more time' });
+    }
+  }
 
   await pool
     .request()
@@ -90,10 +103,11 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/extension-requests/:id
-// Body: { status: 'approved'|'denied', actorId }
-router.patch('/:id', asyncHandler(async (req, res) => {
+// Body: { status: 'approved'|'denied' }. Captains/admins only.
+router.patch('/:id', requireCaptainAccess, asyncHandler(async (req, res) => {
   const id = req.params.id;
-  const { status, actorId } = req.body;
+  const { status } = req.body;
+  const actorId = actorIdFor(req, req.body.actorId);
 
   if (!['approved', 'denied'].includes(status) || !actorId) {
     return res.status(400).json({ error: 'status must be approved or denied, and actorId is required' });

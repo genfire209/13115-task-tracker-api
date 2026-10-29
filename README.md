@@ -26,6 +26,23 @@ that restriction.
 | GET | `/api/users` | List team members |
 | PATCH | `/api/users/:id` | Change a user's role |
 
+## Authentication
+
+`POST /api/auth/login` verifies the Google id token and returns the user plus
+a `sessionToken` (HMAC-signed with `SESSION_SECRET`, valid 30 days). Every
+other `/api` route except `/api/health` and the cron routes requires
+`Authorization: Bearer <sessionToken>`, and the signed-in user is the only
+identity the server uses - `actorId` / `requesterId` / `createdBy` in a
+request are ignored. Who may do what is checked per route (see
+`src/authenticate.js` and `canTakeAction` in `src/routes/tasks.js`).
+
+`ALLOW_LEGACY_CLIENTS=true` lets app builds from before session tokens keep
+working during a rollout; it reopens the old hole, so turn it off once
+everyone has updated.
+
+`npm test` runs the server against an in-memory fake database and checks
+these rules.
+
 ## Live deployment
 
 - **Resource group**: `rg-13115-tasktracker` (Central US)
