@@ -9,6 +9,8 @@ const ftcLiveRouter = require('./src/routes/ftcLive');
 const meetsRouter = require('./src/routes/meets');
 const { authenticate, requireSession, requireApproved } = require('./src/authenticate');
 const { runMeetTick } = require('./src/meetAlerts');
+const { getPool } = require('./src/db');
+const { ensureTables } = require('./src/schema');
 
 const app = express();
 // Only the browser-based web build needs this — native iOS/Android requests
@@ -64,8 +66,16 @@ process.on('unhandledRejection', (err) => {
 // Meet-mode alerts need minute-level timing, finer than the GitHub Actions
 // cron can give, so the server checks every minute itself (the cron ping is
 // the backup, and keeps the free-tier app from going to sleep).
+// Creates tables a newer version needs (see src/schema.js) before the first
+// meet tick uses them. A failure is logged, not fatal: tasks still work, and
+// the next restart tries again.
+const tablesReady = getPool()
+  .then(ensureTables)
+  .then((created) => created.length && console.log(`Created tables: ${created.join(', ')}`))
+  .catch((err) => console.error('Creating missing tables failed', err));
+
 setInterval(() => {
-  runMeetTick().catch((err) => console.error('Meet tick failed', err));
+  tablesReady.then(runMeetTick).catch((err) => console.error('Meet tick failed', err));
 }, 60 * 1000);
 
 const port = process.env.PORT || 8080;

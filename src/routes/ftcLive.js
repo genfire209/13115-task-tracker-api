@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { fetchEventMatches } = require('../ftcApi');
-const { actorIdFor } = require('../authenticate');
+const { actorIdFor, userIdsFor } = require('../authenticate');
 
 const router = express.Router();
 
@@ -31,7 +31,8 @@ router.get('/watched', asyncHandler(async (req, res) => {
   const result = await pool.request().query(
     'SELECT id, season, eventCode, addedBy, createdAt FROM WatchedFtcEvents ORDER BY createdAt DESC',
   );
-  res.json(result.recordset);
+  const shown = userIdsFor(req);
+  res.json(result.recordset.map((w) => ({ ...w, addedBy: shown(w.addedBy) })));
 }));
 
 // POST /api/ftc-live/watched

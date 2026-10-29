@@ -57,6 +57,14 @@ function matches(row, where, params) {
 function run(text, params) {
   const q = text.replace(/\s+/g, ' ').trim();
   let m;
+  // src/schema.js: does a table exist, and creating one.
+  if (/^SELECT 1 AS found FROM sys\.tables WHERE name = @name$/i.test(q)) {
+    return { recordset: tables[params.name] ? [{ found: 1 }] : [], rowsAffected: [1] };
+  }
+  if ((m = q.match(/^CREATE TABLE (\w+) \(/i))) {
+    tables[m[1]] = [];
+    return { recordset: [], rowsAffected: [0] };
+  }
   if ((m = q.replace(/^SELECT TOP \d+ /i, 'SELECT ').match(/^SELECT (.+?) FROM (\w+)(?: WHERE (.+?))?(?: ORDER BY .+)?$/i))) {
     const rows = tables[m[2]].filter((r) => matches(r, m[3], params));
     const cols = m[1].trim() === '*' ? null : m[1].split(',').map((c) => c.trim());
@@ -175,4 +183,4 @@ express.application.listen = function listen(...args) {
   return original.apply(this, args);
 };
 
-module.exports = { tables, fakeFtc };
+module.exports = { tables, fakeFtc, pool };

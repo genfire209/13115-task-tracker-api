@@ -41,7 +41,7 @@ estimated until the first match has been played. The server checks every
 minute; `.github/workflows/meet-tick.yml` pings `/api/cron/meet-tick` every
 5 minutes as a backup and to keep the free-tier app awake. Admins can start
 a test run (`testOnly`, optionally another `teamNumber`) whose alerts go only
-to them. Needs `scripts/add-meet-mode-tables-2026-10-29.js` run once.
+to them. Its tables are created at startup if missing (`src/schema.js`).
 
 ## Authentication
 
@@ -52,6 +52,10 @@ other `/api` route except `/api/health` and the cron routes requires
 identity the server uses - `actorId` / `requesterId` / `createdBy` in a
 request are ignored. Who may do what is checked per route (see
 `src/authenticate.js` and `canTakeAction` in `src/routes/tasks.js`).
+
+A user's id is their email, so members see everyone else's id as a stable
+`u_...` stand-in (`userIdsFor` in `src/authenticate.js`) and the roster's
+`email` field is empty; captains and admins see real ids and emails.
 
 `ALLOW_LEGACY_CLIENTS=true` lets app builds from before session tokens keep
 working during a rollout; it reopens the old hole, so turn it off once

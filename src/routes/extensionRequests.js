@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
-const { actorIdFor, requireCaptainAccess } = require('../authenticate');
+const { actorIdFor, requireCaptainAccess, userIdsFor } = require('../authenticate');
 
 const router = express.Router();
 
@@ -99,7 +99,8 @@ router.get('/', asyncHandler(async (req, res) => {
     query += ' WHERE status = @status';
   }
   const result = await request.query(query);
-  res.json(result.recordset);
+  const shown = userIdsFor(req);
+  res.json(result.recordset.map((r) => ({ ...r, requestedBy: shown(r.requestedBy) })));
 }));
 
 // PATCH /api/extension-requests/:id

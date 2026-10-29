@@ -15,6 +15,7 @@ const {
   actorIdFor,
   permitted,
   hasCaptainAccess,
+  userIdsFor,
 } = require('../authenticate');
 
 const router = express.Router();
@@ -106,6 +107,8 @@ router.post('/broadcast', asyncHandler(async (req, res) => {
 
 // GET /api/users
 // General-purpose roster: approved, non-banned, non-hidden members only.
+// Members get names, not emails (see userIdsFor); `email` stays in the
+// response, empty, because the app expects the field.
 router.get('/', requireApproved, asyncHandler(async (req, res) => {
   const pool = await getPool();
   const result = await pool.request().query(`
@@ -113,7 +116,13 @@ router.get('/', requireApproved, asyncHandler(async (req, res) => {
     WHERE banned = 0 AND approved = 1 AND hiddenFromRoster = 0
     ORDER BY name ASC
   `);
-  res.json(result.recordset.map(withSubteams));
+  const shown = userIdsFor(req);
+  res.json(
+    result.recordset.map(withSubteams).map((u) => {
+      const id = shown(u.id);
+      return id === u.id ? u : { ...u, id, email: '' };
+    }),
+  );
 }));
 
 // GET /api/users/pending-approval

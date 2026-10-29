@@ -1,7 +1,7 @@
 const express = require('express');
 const { getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
-const { requireCaptainAccess } = require('../authenticate');
+const { requireCaptainAccess, userIdsFor } = require('../authenticate');
 const { fetchEventMatches, fetchRankings, fetchRegionEvents, fetchTeamEventCodes } = require('../ftcApi');
 const { rankingPoints } = require('../scoreDetails');
 const {
@@ -19,11 +19,14 @@ const router = express.Router();
 // Which meets the app lists: every event in this FIRST region.
 const REGION = process.env.MEET_REGION || 'USNJ';
 
-/** The active meet as this user should see it - a test run is only visible to whoever started it. */
-async function visibleActiveMeet(pool, user) {
+/**
+ * The active meet as this user should see it - a test run is only visible to
+ * whoever started it, and startedBy is hidden from members like other ids.
+ */
+async function visibleActiveMeet(pool, req) {
   const meet = await getActiveMeet(pool);
-  if (!meet || (meet.testOnly && meet.startedBy !== user.id)) return null;
-  return meet;
+  if (!meet || (meet.testOnly && meet.startedBy !== req.user.id)) return null;
+  return { ...meet, startedBy: userIdsFor(req)(meet.startedBy) };
 }
 
 function nextMatchFor(matches, teamNumber) {
@@ -40,7 +43,7 @@ router.get('/', asyncHandler(async (req, res) => {
   const [events, ourCodes, active] = await Promise.all([
     fetchRegionEvents(season, REGION),
     fetchTeamEventCodes(season, OUR_TEAM).catch(() => []),
-    visibleActiveMeet(pool, req.user),
+    visibleActiveMeet(pool, req),
   ]);
   res.json({
     season,
@@ -59,7 +62,7 @@ router.get('/', asyncHandler(async (req, res) => {
 // banner on the task board.
 router.get('/active', asyncHandler(async (req, res) => {
   const pool = await getPool();
-  const active = await visibleActiveMeet(pool, req.user);
+  const active = await visibleActiveMeet(pool, req);
   if (!active) return res.json({ active: null });
   const event = await fetchEventMatches(active.season, active.eventCode);
   res.json({
@@ -84,7 +87,7 @@ router.get('/:season/:code', asyncHandler(async (req, res) => {
   const [event, rankings, active] = await Promise.all([
     fetchEventMatches(season, code),
     fetchRankings(season, code),
-    visibleActiveMeet(pool, req.user),
+    visibleActiveMeet(pool, req),
   ]);
   if (!event) return res.status(404).json({ error: 'Event not found' });
 
@@ -109,7 +112,7 @@ router.get('/:season/:code/matches/:matchKey', asyncHandler(async (req, res) => 
   const season = parseInt(req.params.season, 10);
   const code = String(req.params.code).toUpperCase();
   const pool = await getPool();
-  const [event, active] = await Promise.all([fetchEventMatches(season, code), visibleActiveMeet(pool, req.user)]);
+  const [event, active] = await Promise.all([fetchEventMatches(season, code), visibleActiveMeet(pool, req)]);
   const match = event && withEstimates(event.matches).find((m) => m.matchKey === req.params.matchKey);
   if (!match) return res.status(404).json({ error: 'Match not found' });
 

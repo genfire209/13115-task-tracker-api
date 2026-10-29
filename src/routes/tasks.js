@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
 const { sendToUser, sendToCaptainsAndAdmins } = require('../push');
-const { actorIdFor, permitted, hasCaptainAccess } = require('../authenticate');
+const { actorIdFor, permitted, hasCaptainAccess, userIdsFor } = require('../authenticate');
 
 const router = express.Router();
 
@@ -71,7 +71,8 @@ async function logEvent(pool, taskId, action, actorId, reason) {
 router.get('/', asyncHandler(async (req, res) => {
   const pool = await getPool();
   const result = await pool.request().query('SELECT * FROM Tasks ORDER BY dueDate ASC');
-  res.json(result.recordset);
+  const shown = userIdsFor(req);
+  res.json(result.recordset.map((t) => ({ ...t, createdBy: shown(t.createdBy), assignedTo: shown(t.assignedTo) })));
 }));
 
 // GET /api/tasks/:id/events
@@ -81,7 +82,8 @@ router.get('/:id/events', asyncHandler(async (req, res) => {
     .request()
     .input('taskId', sql.NVarChar, req.params.id)
     .query('SELECT * FROM TaskEvents WHERE taskId = @taskId ORDER BY timestamp ASC');
-  res.json(result.recordset);
+  const shown = userIdsFor(req);
+  res.json(result.recordset.map((e) => ({ ...e, actorId: shown(e.actorId) })));
 }));
 
 // POST /api/tasks
@@ -142,7 +144,10 @@ router.post('/', asyncHandler(async (req, res) => {
     });
   }
 
-  res.status(201).json({ id, title, description, category, createdBy, assignedTo, status, dueDate });
+  const shown = userIdsFor(req);
+  res.status(201).json({
+    id, title, description, category, createdBy: shown(createdBy), assignedTo: shown(assignedTo), status, dueDate,
+  });
 }));
 
 // PATCH /api/tasks/:id

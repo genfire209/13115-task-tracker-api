@@ -1,5 +1,5 @@
 const { sql, getPool } = require('./db');
-const { verifySessionToken } = require('./session');
+const { verifySessionToken, publicUserId } = require('./session');
 
 // Identity comes only from the session token (see session.js) - never from
 // actorId / requesterId / createdBy in the request, which anyone can type.
@@ -84,6 +84,17 @@ function permitted(req, condition) {
   return !!req.legacy || condition;
 }
 
+/**
+ * How user ids should appear to whoever made this request. Members only see
+ * names - a user's id is their email, so everyone else's is swapped for
+ * publicUserId. Their own id, captains/admins and legacy clients (whose old
+ * app needs the real ids) see ids unchanged.
+ */
+function userIdsFor(req) {
+  if (req.legacy || hasCaptainAccess(req.user)) return (id) => id;
+  return (id) => (id == null || id === req.user.id ? id : publicUserId(id));
+}
+
 module.exports = {
   authenticate,
   requireSession,
@@ -92,4 +103,5 @@ module.exports = {
   actorIdFor,
   permitted,
   hasCaptainAccess,
+  userIdsFor,
 };

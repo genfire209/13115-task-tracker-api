@@ -42,4 +42,13 @@ function verifySessionToken(token) {
   }
 }
 
-module.exports = { createSessionToken, verifySessionToken };
+/**
+ * A stable stand-in for a user id (their email) that doesn't reveal it, for
+ * showing other people's ids to members: 'u_' + 16 characters. Same input,
+ * same output, so it still matches across tasks, history and the roster.
+ */
+function publicUserId(userId) {
+  return 'u_' + crypto.createHmac('sha256', secret()).update(`public-id:${userId}`).digest('base64url').slice(0, 16);
+}
+
+module.exports = { createSessionToken, verifySessionToken, publicUserId };
