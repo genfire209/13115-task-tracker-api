@@ -56,6 +56,12 @@ async function authenticate(req, res, next) {
   }
 }
 
+/** Middleware: a real signed-in user. For routes no legacy app build ever called. */
+function requireSession(req, res, next) {
+  if (req.user) return next();
+  res.status(401).json({ error: 'Not signed in' });
+}
+
 /** Middleware: only members a captain/admin has let in. */
 function requireApproved(req, res, next) {
   if (req.legacy || req.user.approved) return next();
@@ -80,6 +86,7 @@ function permitted(req, condition) {
 
 module.exports = {
   authenticate,
+  requireSession,
   requireApproved,
   requireCaptainAccess,
   actorIdFor,

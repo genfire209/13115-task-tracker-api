@@ -6,8 +6,8 @@
 // in the local time to the event venue" with no offset in the string at
 // all - so these must never be run through `new Date(...)` (Node would
 // silently interpret them as the SERVER's own timezone, not the venue's).
-// Every time value here stays a raw string; only the HH:mm portion is ever
-// extracted, never reinterpreted as an instant.
+// Every time value here stays a raw venue-local string; meetAlerts.js does
+// its arithmetic on the wall-clock fields, never as an instant.
 const BASE = 'https://ftc-api.firstinspires.org/v2.0';
 
 function authHeader() {
@@ -26,6 +26,22 @@ async function get(path) {
   }
   return res.json();
 }
+
+// Small in-memory cache so a room full of phones refreshing a meet doesn't
+// turn into a request each to FIRST. Concurrent callers share one fetch; a
+// failed fetch isn't cached.
+const cache = new Map();
+
+function cached(key, ttlMs, load) {
+  const hit = cache.get(key);
+  if (hit && hit.expires > Date.now()) return hit.promise;
+  const promise = load();
+  cache.set(key, { promise, expires: Date.now() + ttlMs });
+  promise.catch(() => cache.delete(key));
+  return promise;
+}
+
+const MINUTE = 60 * 1000;
 
 // "Red1"/"Blue2" -> "Red"/"Blue"
 function allianceFromStation(station) {
@@ -57,10 +73,12 @@ async function fetchLevel(season, eventCode, level) {
       description: s.description,
       hasBeenPlayed: !!result,
       scheduledStartTime: s.startTime, // raw "yyyy-MM-ddTHH:mm:ss", venue-local
+      actualStartTime: result?.actualStartTime ?? null,
       postResultTime: result?.postResultTime ?? null,
       teams: s.teams.map((t) => ({
         alliance: allianceFromStation(t.station),
         teamNumber: t.teamNumber,
+        teamName: t.teamName ?? null,
       })),
       redScore: result?.scoreRedFinal ?? null,
       blueScore: result?.scoreBlueFinal ?? null,
@@ -68,25 +86,81 @@ async function fetchLevel(season, eventCode, level) {
   });
 }
 
-/** Returns { name, timezone, matches: [...] } for an event, or null if not found. */
-async function fetchEventMatches(season, eventCode) {
-  const eventList = await get(`/${season}/events?eventCode=${eventCode}`);
-  const eventInfo = eventList?.events?.[0];
-  if (!eventInfo) return null;
+/**
+ * Returns { code, name, timezone, dateStart, dateEnd, venue, city, matches: [...] }
+ * for an event, or null if not found. Matches are in schedule order:
+ * qualifications, then playoffs.
+ */
+function fetchEventMatches(season, eventCode) {
+  return cached(`matches:${season}:${eventCode}`, 20 * 1000, async () => {
+    const eventList = await get(`/${season}/events?eventCode=${eventCode}`);
+    const eventInfo = eventList?.events?.[0];
+    if (!eventInfo) return null;
 
-  // Playoffs don't exist as a schedule until quals finish and alliances are
-  // picked - a fetch failure there just means "no playoff matches yet",
-  // not a real error.
-  const [qual, playoff] = await Promise.all([
-    fetchLevel(season, eventCode, 'qual').catch(() => []),
-    fetchLevel(season, eventCode, 'playoff').catch(() => []),
-  ]);
+    // Playoffs don't exist as a schedule until quals finish and alliances are
+    // picked - a fetch failure there just means "no playoff matches yet",
+    // not a real error.
+    const [qual, playoff] = await Promise.all([
+      fetchLevel(season, eventCode, 'qual').catch(() => []),
+      fetchLevel(season, eventCode, 'playoff').catch(() => []),
+    ]);
 
-  return {
-    name: eventInfo.name,
-    timezone: eventInfo.timezone,
-    matches: [...qual, ...playoff],
-  };
+    return {
+      code: eventInfo.code,
+      name: eventInfo.name,
+      timezone: eventInfo.timezone,
+      dateStart: eventInfo.dateStart,
+      dateEnd: eventInfo.dateEnd,
+      venue: eventInfo.venue,
+      city: eventInfo.city,
+      matches: [...qual, ...playoff],
+    };
+  });
 }
 
-module.exports = { fetchEventMatches };
+/** Qualification rankings for an event, best first ([] before any are posted). */
+function fetchRankings(season, eventCode) {
+  return cached(`rankings:${season}:${eventCode}`, 30 * 1000, async () => {
+    const data = await get(`/${season}/rankings/${eventCode}`).catch(() => null);
+    return (data?.rankings || []).map((r) => ({
+      rank: r.rank,
+      teamNumber: r.teamNumber,
+      teamName: r.teamName ?? null,
+      wins: r.wins,
+      losses: r.losses,
+      ties: r.ties,
+      matchesPlayed: r.matchesPlayed,
+      rankingScore: r.sortOrder1,
+    }));
+  });
+}
+
+/** Every event in a region for a season (e.g. 'USNJ'), soonest first. */
+function fetchRegionEvents(season, regionCode) {
+  return cached(`events:${season}:${regionCode}`, 60 * MINUTE, async () => {
+    const data = await get(`/${season}/events`);
+    return (data?.events || [])
+      .filter((e) => e.regionCode === regionCode || (!e.regionCode && `US${e.stateprov}` === regionCode))
+      .map((e) => ({
+        code: e.code,
+        name: e.name,
+        typeName: e.typeName,
+        dateStart: e.dateStart,
+        dateEnd: e.dateEnd,
+        venue: e.venue,
+        city: e.city,
+        timezone: e.timezone,
+      }))
+      .sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart)));
+  });
+}
+
+/** Codes of the events a team is registered for this season. */
+function fetchTeamEventCodes(season, teamNumber) {
+  return cached(`team-events:${season}:${teamNumber}`, 60 * MINUTE, async () => {
+    const data = await get(`/${season}/events?teamNumber=${teamNumber}`);
+    return (data?.events || []).map((e) => e.code);
+  });
+}
+
+module.exports = { fetchEventMatches, fetchRankings, fetchRegionEvents, fetchTeamEventCodes };

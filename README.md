@@ -25,6 +25,23 @@ that restriction.
 | PATCH | `/api/extension-requests/:id` | Approve/deny an extension |
 | GET | `/api/users` | List team members |
 | PATCH | `/api/users/:id` | Change a user's role |
+| GET | `/api/meets?season=2026` | Every NJ meet this season, ours flagged |
+| GET | `/api/meets/:season/:code` | One meet: matches (teams, scores, estimated start times), rankings |
+| GET | `/api/meets/active` | The meet in meet mode, and our next match |
+| POST | `/api/meets/active` | Captain/admin: start meet mode (`{ season, eventCode }`) |
+| DELETE | `/api/meets/active` | Captain/admin: end meet mode |
+
+## Meet mode
+
+While a captain/admin has a meet in meet mode, every approved member gets a
+push ~10 and ~5 minutes before each 13115 match, and the result after it.
+Published FTC schedule times are often placeholders, so start times are
+estimated from the event's real progress (`src/meetAlerts.js`): nothing is
+estimated until the first match has been played. The server checks every
+minute; `.github/workflows/meet-tick.yml` pings `/api/cron/meet-tick` every
+5 minutes as a backup and to keep the free-tier app awake. Admins can start
+a test run (`testOnly`, optionally another `teamNumber`) whose alerts go only
+to them. Needs `scripts/add-meet-mode-tables-2026-10-29.js` run once.
 
 ## Authentication
 

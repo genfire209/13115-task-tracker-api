@@ -1,0 +1,725 @@
+{
+ "code": "USNJSOM1",
+ "name": "P1-1 Southern League Meet",
+ "timezone": "America/New_York",
+ "dateStart": "2026-10-24T00:00:00",
+ "dateEnd": "2026-10-24T00:00:00",
+ "venue": "Holmdel High School",
+ "city": "Holmdel",
+ "matches": [
+  {
+   "matchKey": "QUALIFICATION-0-1",
+   "matchNum": 1,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 1",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:00:00",
+   "postResultTime": "2026-10-24T12:42:43.649",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 37961,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 23743,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 32830,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 22261,
+     "teamName": null
+    }
+   ],
+   "redScore": 48,
+   "blueScore": 29,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-2",
+   "matchNum": 2,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 2",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:07:00",
+   "postResultTime": "2026-10-24T12:54:10.226",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 32294,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 19735,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 31127,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 36611,
+     "teamName": null
+    }
+   ],
+   "redScore": 56,
+   "blueScore": 34,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-3",
+   "matchNum": 3,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 3",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:14:00",
+   "postResultTime": "2026-10-24T13:00:25.151",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 10974,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 17377,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 13115,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 13124,
+     "teamName": null
+    }
+   ],
+   "redScore": 34,
+   "blueScore": 22,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-4",
+   "matchNum": 4,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 4",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:21:00",
+   "postResultTime": "2026-10-24T13:06:16.249",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 17036,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 32830,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 36975,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 31127,
+     "teamName": null
+    }
+   ],
+   "redScore": 11,
+   "blueScore": 63,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-5",
+   "matchNum": 5,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 5",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:28:00",
+   "postResultTime": "2026-10-24T13:12:17.176",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 13115,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 32294,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 23743,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 13124,
+     "teamName": null
+    }
+   ],
+   "redScore": 20,
+   "blueScore": 24,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-6",
+   "matchNum": 6,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 6",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:35:00",
+   "postResultTime": "2026-10-24T13:19:11.741",
+   "teams": [
+    {
+     "alliance": "Blue",
+     "teamNumber": 19735,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 10974,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 37961,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 36975,
+     "teamName": null
+    }
+   ],
+   "redScore": 56,
+   "blueScore": 44,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-7",
+   "matchNum": 7,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 7",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:42:00",
+   "postResultTime": "2026-10-24T13:26:54.58",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 36611,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 22261,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 17377,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 17036,
+     "teamName": null
+    }
+   ],
+   "redScore": 23,
+   "blueScore": 36,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-8",
+   "matchNum": 8,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 8",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:49:00",
+   "postResultTime": "2026-10-24T13:31:43.959",
+   "teams": [
+    {
+     "alliance": "Blue",
+     "teamNumber": 31127,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 32294,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 36975,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 10974,
+     "teamName": null
+    }
+   ],
+   "redScore": 37,
+   "blueScore": 26,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-9",
+   "matchNum": 9,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 9",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T08:56:00",
+   "postResultTime": "2026-10-24T13:38:09.368",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 23743,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 17036,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 19735,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 13115,
+     "teamName": null
+    }
+   ],
+   "redScore": 21,
+   "blueScore": 58,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-10",
+   "matchNum": 10,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 10",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:03:00",
+   "postResultTime": "2026-10-24T13:44:40.69",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 36611,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 13124,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 37961,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 32830,
+     "teamName": null
+    }
+   ],
+   "redScore": 56,
+   "blueScore": 37,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-11",
+   "matchNum": 11,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 11",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:10:00",
+   "postResultTime": "2026-10-24T14:00:34.977",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 22261,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 32294,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 17377,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 13115,
+     "teamName": null
+    }
+   ],
+   "redScore": 61,
+   "blueScore": 37,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-12",
+   "matchNum": 12,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 12",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:17:00",
+   "postResultTime": "2026-10-24T14:01:00.483",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 32830,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 36611,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 17036,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 10974,
+     "teamName": null
+    }
+   ],
+   "redScore": 28,
+   "blueScore": 27,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-13",
+   "matchNum": 13,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 13",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:24:00",
+   "postResultTime": "2026-10-24T14:11:04.452",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 13124,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 19735,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 31127,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 22261,
+     "teamName": null
+    }
+   ],
+   "redScore": 56,
+   "blueScore": 58,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-14",
+   "matchNum": 14,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 14",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:31:00",
+   "postResultTime": "2026-10-24T14:23:51.936",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 17377,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 37961,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 36975,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 23743,
+     "teamName": null
+    }
+   ],
+   "redScore": 49,
+   "blueScore": 50,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-15",
+   "matchNum": 15,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 15",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:38:00",
+   "postResultTime": "2026-10-24T14:29:07.596",
+   "teams": [
+    {
+     "alliance": "Blue",
+     "teamNumber": 10974,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 13124,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 22261,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 17036,
+     "teamName": null
+    }
+   ],
+   "redScore": 48,
+   "blueScore": 19,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-16",
+   "matchNum": 16,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 16",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:45:00",
+   "postResultTime": "2026-10-24T14:38:20.243",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 31127,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 13115,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 36611,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 37961,
+     "teamName": null
+    }
+   ],
+   "redScore": 36,
+   "blueScore": 49,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-17",
+   "matchNum": 17,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 17",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:52:00",
+   "postResultTime": "2026-10-24T14:45:41.135",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 19735,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 32830,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 32294,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 17377,
+     "teamName": null
+    }
+   ],
+   "redScore": 46,
+   "blueScore": 40,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-18",
+   "matchNum": 18,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 18",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T09:59:00",
+   "postResultTime": "2026-10-24T14:51:35.082",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 36975,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 13124,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 36611,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 23743,
+     "teamName": null
+    }
+   ],
+   "redScore": 55,
+   "blueScore": 47,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-19",
+   "matchNum": 19,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 19",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T10:06:00",
+   "postResultTime": "2026-10-24T14:59:01.721",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 19735,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 32294,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 17036,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 37961,
+     "teamName": null
+    }
+   ],
+   "redScore": 94,
+   "blueScore": 25,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-20",
+   "matchNum": 20,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 20",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T10:13:00",
+   "postResultTime": "2026-10-24T15:03:46.866",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 32830,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 36975,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 22261,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 13115,
+     "teamName": null
+    }
+   ],
+   "redScore": 36,
+   "blueScore": 61,
+   "actualStartTime": null
+  },
+  {
+   "matchKey": "QUALIFICATION-0-21",
+   "matchNum": 21,
+   "tournamentLevel": "QUALIFICATION",
+   "description": "Qualification 21",
+   "hasBeenPlayed": true,
+   "scheduledStartTime": "2026-10-24T10:20:00",
+   "postResultTime": "2026-10-24T15:04:42.118",
+   "teams": [
+    {
+     "alliance": "Red",
+     "teamNumber": 10974,
+     "teamName": null
+    },
+    {
+     "alliance": "Red",
+     "teamNumber": 31127,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 23743,
+     "teamName": null
+    },
+    {
+     "alliance": "Blue",
+     "teamNumber": 17377,
+     "teamName": null
+    }
+   ],
+   "redScore": 18,
+   "blueScore": 26,
+   "actualStartTime": null
+  }
+ ]
+}

@@ -1,7 +1,10 @@
-// Preloaded with `node -r ./test/fakeBackend.js server.js` by the tests: swaps
-// the Azure SQL pool for a tiny in-memory database that understands the
-// handful of query shapes the routes use, and Google token checks for
-// "the id token is the email". Never used in production.
+// Preloaded with `node -r ./test/fakeBackend.js server.js` by the tests (or
+// required directly by in-process tests): swaps the Azure SQL pool for a
+// tiny in-memory database that understands the handful of query shapes the
+// routes use, Google token checks for "the id token is the email", and
+// FIRST's FTC API for the real USNJSOM1 (2026-10-24) data in
+// fixtures/USNJSOM1.json, replayed up to a settable venue time. Never used
+// in production.
 const path = require('path');
 
 const tables = {
@@ -22,7 +25,11 @@ const tables = {
   ExtensionRequests: [],
   LoginEvents: [],
   WatchedFtcEvents: [],
+  ActiveMeets: [],
+  MeetAlertsSent: [],
 };
+
+const PRIMARY_KEYS = { MeetAlertsSent: ['season', 'eventCode', 'matchKey', 'kind'] };
 
 const value = (token, params) => {
   if (token.startsWith('@')) return params[token.slice(1)];
@@ -35,6 +42,9 @@ const value = (token, params) => {
 function matches(row, where, params) {
   if (!where) return true;
   return where.split(/ AND /i).every((cond) => {
+    const nullCheck = cond.trim().match(/^(\w+) IS (NOT )?NULL$/i);
+    // eslint-disable-next-line eqeqeq
+    if (nullCheck) return nullCheck[2] ? row[nullCheck[1]] != null : row[nullCheck[1]] == null;
     const [, col, op, rhs] = cond.trim().match(/^(\w+) (=|<>) (.+)$/);
     const v = value(rhs.trim(), params);
     // eslint-disable-next-line eqeqeq
@@ -45,7 +55,7 @@ function matches(row, where, params) {
 function run(text, params) {
   const q = text.replace(/\s+/g, ' ').trim();
   let m;
-  if ((m = q.match(/^SELECT (.+?) FROM (\w+)(?: WHERE (.+?))?(?: ORDER BY .+)?$/i))) {
+  if ((m = q.replace(/^SELECT TOP \d+ /i, 'SELECT ').match(/^SELECT (.+?) FROM (\w+)(?: WHERE (.+?))?(?: ORDER BY .+)?$/i))) {
     const rows = tables[m[2]].filter((r) => matches(r, m[3], params));
     const cols = m[1].trim() === '*' ? null : m[1].split(',').map((c) => c.trim());
     const out = rows.map((r) => (cols ? Object.fromEntries(cols.map((c) => [c, r[c]])) : { ...r }));
@@ -64,7 +74,13 @@ function run(text, params) {
   if ((m = q.match(/^INSERT INTO (\w+) \((.+?)\) VALUES \((.+)\)$/i))) {
     const cols = m[2].split(',').map((c) => c.trim());
     const vals = m[3].split(',').map((v) => value(v.trim(), params));
-    tables[m[1]].push(Object.fromEntries(cols.map((c, i) => [c, vals[i]])));
+    const row = Object.fromEntries(cols.map((c, i) => [c, vals[i]]));
+    const key = PRIMARY_KEYS[m[1]];
+    // eslint-disable-next-line eqeqeq
+    if (key && tables[m[1]].some((r) => key.every((k) => r[k] == row[k]))) {
+      throw Object.assign(new Error('Violation of PRIMARY KEY constraint'), { number: 2627 });
+    }
+    tables[m[1]].push(row);
     return { recordset: [], rowsAffected: [1] };
   }
   if ((m = q.match(/^DELETE FROM (\w+) WHERE (.+)$/i))) {
@@ -96,6 +112,35 @@ const stub = (file, exports) => {
 stub('db.js', { sql: new Proxy({}, { get: (_, k) => k }), getPool: async () => pool });
 stub('authVerify.js', { verifyGoogleToken: async (idToken) => ({ email: idToken, name: idToken }) });
 
+// FIRST's API, replaying fixtures/USNJSOM1.json: a match counts as played
+// once the venue clock passes its real postResultTime. With no clock set,
+// every match is played.
+const fixture = require('./fixtures/USNJSOM1.json');
+const fakeFtc = {
+  venueTime: process.env.FAKE_VENUE_TIME || null,
+  setVenueTime(t) {
+    fakeFtc.venueTime = t;
+  },
+  event() {
+    const matches = fixture.matches.map((m) => {
+      const played = !fakeFtc.venueTime || m.postResultTime <= fakeFtc.venueTime;
+      return played
+        ? { ...m }
+        : { ...m, hasBeenPlayed: false, actualStartTime: null, postResultTime: null, redScore: null, blueScore: null };
+    });
+    return { ...fixture, matches };
+  },
+};
+stub('ftcApi.js', {
+  fetchEventMatches: async (season, code) => (season === 2026 && code === 'USNJSOM1' ? fakeFtc.event() : null),
+  fetchRankings: async () => [],
+  fetchRegionEvents: async () => [
+    { code: 'USNJSOM1', name: fixture.name, dateStart: '2026-10-24T00:00:00', dateEnd: '2026-10-24T00:00:00' },
+    { code: 'USNJSOM4', name: 'P2-5 Southern League Meet', dateStart: '2026-12-05T00:00:00', dateEnd: '2026-12-05T00:00:00' },
+  ],
+  fetchTeamEventCodes: async () => ['USNJSOM1'],
+});
+
 // Lets a test read the in-memory tables over HTTP.
 const express = require('express');
 const original = express.application.listen;
@@ -103,3 +148,5 @@ express.application.listen = function listen(...args) {
   this.get('/__test/tables', (req, res) => res.json(tables));
   return original.apply(this, args);
 };
+
+module.exports = { tables, fakeFtc };

@@ -68,6 +68,25 @@ async function sendToAllUsers({ title, body, data }) {
   return { sent: result.recordset.length, total: result.recordset.length };
 }
 
+/** Sends to every approved, non-banned member with a registered device token. */
+async function sendToTeam({ title, body, data }) {
+  if (!ensureInitialized()) return { sent: 0 };
+  try {
+    const pool = await getPool();
+    const result = await pool.request().query(`
+      SELECT pushToken FROM Users
+      WHERE approved = 1 AND banned = 0 AND pushToken IS NOT NULL
+    `);
+    await Promise.all(
+      result.recordset.map((row) => sendToToken(row.pushToken, { title, body, data })),
+    );
+    return { sent: result.recordset.length };
+  } catch (err) {
+    console.error('Push notification (team) failed', err);
+    return { sent: 0 };
+  }
+}
+
 /** Sends to every captain/admin with a registered device token. */
 async function sendToCaptainsAndAdmins({ title, body, data }) {
   if (!ensureInitialized()) return;
@@ -109,4 +128,4 @@ async function sendTestNotification(userId) {
   return { messageId, tokenPrefix: token.slice(0, 12) };
 }
 
-module.exports = { sendToUser, sendToAllUsers, sendToCaptainsAndAdmins, sendTestNotification };
+module.exports = { sendToUser, sendToAllUsers, sendToTeam, sendToCaptainsAndAdmins, sendTestNotification };

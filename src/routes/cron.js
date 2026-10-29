@@ -1,8 +1,8 @@
 const express = require('express');
 const { sql, getPool } = require('../db');
 const asyncHandler = require('../asyncHandler');
-const { sendToUser, sendToAllUsers } = require('../push');
-const { fetchEventMatches } = require('../ftcApi');
+const { sendToUser } = require('../push');
+const { runMeetTick } = require('../meetAlerts');
 
 const router = express.Router();
 
@@ -13,31 +13,6 @@ function requireCronSecret(req, res) {
     return false;
   }
   return true;
-}
-
-function formatMatchNotification(m) {
-  const teamsFor = (alliance) =>
-    m.teams.filter((t) => t.alliance === alliance).map((t) => t.teamNumber).join(', ');
-  const red = teamsFor('Red');
-  const blue = teamsFor('Blue');
-  if (m.redScore == null || m.blueScore == null) {
-    return { title: `${m.description} final`, body: `Red (${red}) vs Blue (${blue})` };
-  }
-  if (m.redScore === m.blueScore) {
-    return {
-      title: `${m.description}: Tie`,
-      body: `Red (${red}) ${m.redScore} - ${m.blueScore} Blue (${blue})`,
-    };
-  }
-  const winner = m.redScore > m.blueScore ? 'Red' : 'Blue';
-  const winTeams = winner === 'Red' ? red : blue;
-  const loseTeams = winner === 'Red' ? blue : red;
-  const winScore = Math.max(m.redScore, m.blueScore);
-  const loseScore = Math.min(m.redScore, m.blueScore);
-  return {
-    title: `${m.description}: ${winner} wins`,
-    body: `${winner} (${winTeams}) beat the other alliance (${loseTeams}) ${winScore}-${loseScore}`,
-  };
 }
 
 // POST /api/cron/due-date-reminders
@@ -75,54 +50,13 @@ router.post('/due-date-reminders', asyncHandler(async (req, res) => {
   res.json({ remindersSent: result.recordset.length });
 }));
 
-// POST /api/cron/ftc-match-results
-// Header: X-Cron-Secret must match CRON_SECRET. Polls every watched FTC
-// event; for each match that's finished and hasn't been notified yet,
-// broadcasts a push and records it so it's never sent twice.
-router.post('/ftc-match-results', asyncHandler(async (req, res) => {
+// POST /api/cron/meet-tick
+// Header: X-Cron-Secret must match CRON_SECRET. Sends any due meet-mode
+// alerts (see src/meetAlerts.js). The server also runs this every minute on
+// its own; this scheduled ping is the backup and keeps the app awake.
+router.post('/meet-tick', asyncHandler(async (req, res) => {
   if (!requireCronSecret(req, res)) return;
-
-  const pool = await getPool();
-  const watched = (await pool.request().query('SELECT season, eventCode FROM WatchedFtcEvents')).recordset;
-
-  let notified = 0;
-  for (const { season, eventCode } of watched) {
-    let event;
-    try {
-      event = await fetchEventMatches(season, eventCode);
-    } catch (err) {
-      console.error(`FTC live: failed to fetch ${season} ${eventCode}`, err);
-      continue;
-    }
-    if (!event) continue;
-
-    for (const m of event.matches) {
-      if (!m.hasBeenPlayed) continue;
-      const already = await pool
-        .request()
-        .input('season', sql.Int, season)
-        .input('eventCode', sql.NVarChar, eventCode)
-        .input('matchKey', sql.NVarChar, m.matchKey)
-        .query(
-          'SELECT 1 AS found FROM NotifiedFtcMatches WHERE season = @season AND eventCode = @eventCode AND matchKey = @matchKey',
-        );
-      if (already.recordset.length > 0) continue;
-
-      const { title, body } = formatMatchNotification(m);
-      await sendToAllUsers({ title, body, data: { type: 'ftc_match_result' } });
-      await pool
-        .request()
-        .input('season', sql.Int, season)
-        .input('eventCode', sql.NVarChar, eventCode)
-        .input('matchKey', sql.NVarChar, m.matchKey)
-        .query(
-          'INSERT INTO NotifiedFtcMatches (season, eventCode, matchKey) VALUES (@season, @eventCode, @matchKey)',
-        );
-      notified++;
-    }
-  }
-
-  res.json({ eventsChecked: watched.length, matchesNotified: notified });
+  res.json(await runMeetTick());
 }));
 
 module.exports = router;

@@ -6,7 +6,9 @@ const extensionRequestsRouter = require('./src/routes/extensionRequests');
 const usersRouter = require('./src/routes/users');
 const cronRouter = require('./src/routes/cron');
 const ftcLiveRouter = require('./src/routes/ftcLive');
-const { authenticate, requireApproved } = require('./src/authenticate');
+const meetsRouter = require('./src/routes/meets');
+const { authenticate, requireSession, requireApproved } = require('./src/authenticate');
+const { runMeetTick } = require('./src/meetAlerts');
 
 const app = express();
 // Only the browser-based web build needs this — native iOS/Android requests
@@ -45,6 +47,7 @@ app.use('/api/extension-requests', requireApproved, extensionRequestsRouter);
 // read and update their own record.
 app.use('/api/users', usersRouter);
 app.use('/api/ftc-live', requireApproved, ftcLiveRouter);
+app.use('/api/meets', requireSession, requireApproved, meetsRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
@@ -57,6 +60,13 @@ app.use((err, req, res, next) => {
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection:', err);
 });
+
+// Meet-mode alerts need minute-level timing, finer than the GitHub Actions
+// cron can give, so the server checks every minute itself (the cron ping is
+// the backup, and keeps the free-tier app from going to sleep).
+setInterval(() => {
+  runMeetTick().catch((err) => console.error('Meet tick failed', err));
+}, 60 * 1000);
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Task tracker API listening on ${port}`));

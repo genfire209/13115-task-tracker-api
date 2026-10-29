@@ -1,16 +1,16 @@
-name: FTC match result notifications
+name: Meet mode alerts
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # every 5 minutes
+    - cron: '*/5 * * * *' # every 5 minutes; the server also checks every minute itself
   workflow_dispatch: {} # allows manual trigger from the Actions tab
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Poll watched FTC events for new match results
+      - name: Send any due meet-mode alerts
         run: |
           curl -sf -X POST \
             -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
-            https://app-13115-tasktracker.azurewebsites.net/api/cron/ftc-match-results
+            https://app-13115-tasktracker.azurewebsites.net/api/cron/meet-tick

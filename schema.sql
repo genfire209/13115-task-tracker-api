@@ -56,7 +56,8 @@ CREATE TABLE LoginEvents (
     timestamp DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
--- FTC live match tracking (hidden feature, not the core task-tracking data).
+-- FTC live match tracking from the old hidden screen; no longer used for
+-- notifications (meet mode replaced it), kept for old app builds.
 CREATE TABLE WatchedFtcEvents (
     id NVARCHAR(50) PRIMARY KEY,
     season INT NOT NULL,
@@ -71,6 +72,29 @@ CREATE TABLE NotifiedFtcMatches (
     matchKey NVARCHAR(50) NOT NULL, -- e.g. "QUALIFICATION-0-12" (tournamentLevel-series-matchNumber)
     notifiedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     PRIMARY KEY (season, eventCode, matchKey)
+);
+
+-- Meet mode: the meet a captain/admin has switched on match alerts for.
+-- At most one row has endedAt NULL at a time.
+CREATE TABLE ActiveMeets (
+    id NVARCHAR(50) PRIMARY KEY,
+    season INT NOT NULL,
+    eventCode NVARCHAR(20) NOT NULL,
+    teamNumber INT NOT NULL,            -- 13115, or another team for an admin's test run
+    testOnly BIT NOT NULL DEFAULT 0,    -- alerts go only to startedBy
+    startedBy NVARCHAR(100) NOT NULL,
+    startedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    endedAt DATETIME2 NULL
+);
+
+-- One row per meet-mode alert already sent, so each goes out exactly once.
+CREATE TABLE MeetAlertsSent (
+    season INT NOT NULL,
+    eventCode NVARCHAR(20) NOT NULL,
+    matchKey NVARCHAR(50) NOT NULL,     -- e.g. "QUALIFICATION-0-12", or "SCHEDULE"
+    kind NVARCHAR(20) NOT NULL,         -- 'schedule' | '10min' | '5min' | 'result'
+    sentAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    PRIMARY KEY (season, eventCode, matchKey, kind)
 );
 
 CREATE INDEX IX_Tasks_AssignedTo ON Tasks(assignedTo);
