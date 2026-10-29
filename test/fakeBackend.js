@@ -15,6 +15,7 @@ const tables = {
     { id: 'alice@x.com', name: 'Alice', email: 'alice@x.com', authProvider: 'google', role: 'member', subteam: 'mechanical', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: 'device-1' },
     { id: 'bob@x.com', name: 'Bob', email: 'bob@x.com', authProvider: 'google', role: 'member', subteam: 'outreach', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
     { id: 'newbie@x.com', name: 'New', email: 'newbie@x.com', authProvider: 'google', role: 'member', subteam: null, banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 0, isJunior: 0, pushToken: null },
+    { id: 'fresh@x.com', name: 'Fresh', email: 'fresh@x.com', authProvider: 'google', role: 'member', subteam: null, banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 0, isJunior: 0, pushToken: null },
     { id: 'gone@x.com', name: 'Gone', email: 'gone@x.com', authProvider: 'google', role: 'member', subteam: 'outreach', banned: 1, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
   ],
   Tasks: [
@@ -27,6 +28,7 @@ const tables = {
   WatchedFtcEvents: [],
   ActiveMeets: [],
   MeetAlertsSent: [],
+  PushLog: [], // every push the server tried to send (see the push.js stub)
 };
 
 const PRIMARY_KEYS = { MeetAlertsSent: ['season', 'eventCode', 'matchKey', 'kind'] };
@@ -111,6 +113,19 @@ const stub = (file, exports) => {
 };
 stub('db.js', { sql: new Proxy({}, { get: (_, k) => k }), getPool: async () => pool });
 stub('authVerify.js', { verifyGoogleToken: async (idToken) => ({ email: idToken, name: idToken }) });
+
+// Pushes are recorded instead of sent, so tests can count them.
+const logPush = (to) => async (message) => {
+  tables.PushLog.push({ to, title: message.title, body: message.body });
+  return { sent: 1 };
+};
+stub('push.js', {
+  sendToUser: async (userId, message) => logPush(userId)(message),
+  sendToAllUsers: logPush('all'),
+  sendToTeam: logPush('team'),
+  sendToCaptainsAndAdmins: logPush('captains'),
+  sendTestNotification: async () => ({ messageId: 'test' }),
+});
 
 // FIRST's API, replaying fixtures/USNJSOM1.json: a match counts as played
 // once the venue clock passes its real postResultTime. With no clock set,

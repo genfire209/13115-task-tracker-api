@@ -46,6 +46,17 @@ function pinMatches(given, expected) {
   return crypto.timingSafeEqual(digest(given), digest(expected));
 }
 
+// Names show up in captains' notifications and lists: one line, sensible length.
+const NAME_MAX = 60;
+
+function cleanName(name) {
+  if (typeof name !== 'string') return null;
+  const trimmed = name.trim();
+  // eslint-disable-next-line no-control-regex
+  if (!trimmed || trimmed.length > NAME_MAX || /[\u0000-\u001f\u007f]/.test(trimmed)) return null;
+  return trimmed;
+}
+
 function withSubteams(row) {
   const { subteam, isJunior, ...rest } = row;
   return { ...rest, subteams: subteamsFromDb(subteam), isJunior: !!isJunior };
@@ -214,6 +225,9 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     }
     pinFailures.delete(requesterId);
   }
+  if (name !== undefined && cleanName(name) === null) {
+    return res.status(400).json({ error: `Name must be 1-${NAME_MAX} characters on one line` });
+  }
   if (subteams !== undefined && !isValidSubteamsArray(subteams)) {
     return res.status(400).json({
       error: 'subteams must be a non-empty array of: mechanical, outreach, programming, strategy',
@@ -246,8 +260,9 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   const existing = await pool
     .request()
     .input('id', sql.NVarChar, req.params.id)
-    .query('SELECT name, approved FROM Users WHERE id = @id');
+    .query('SELECT name, approved, subteam FROM Users WHERE id = @id');
   const wasApproved = !!existing.recordset[0]?.approved;
+  const wasOnboarded = !!existing.recordset[0]?.subteam;
   const currentName = existing.recordset[0]?.name;
 
   const request = pool.request().input('id', sql.NVarChar, req.params.id);
@@ -258,7 +273,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     setClauses.push('role = @role');
   }
   if (name !== undefined) {
-    request.input('name', sql.NVarChar, name);
+    request.input('name', sql.NVarChar, cleanName(name));
     setClauses.push('name = @name');
   }
   if (subteams !== undefined) {
@@ -284,10 +299,12 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 
   await request.query(`UPDATE Users SET ${setClauses.join(', ')} WHERE id = @id`);
 
-  if (subteams !== undefined && !wasApproved) {
+  // Only when onboarding first completes - not on every later subteam
+  // change, which let one unapproved account push captains endlessly.
+  if (subteams !== undefined && !wasApproved && !wasOnboarded) {
     sendToCaptainsAndAdmins({
       title: 'New member needs approval',
-      body: `${name || currentName || req.params.id} completed onboarding`,
+      body: `${cleanName(name) || currentName || req.params.id} completed onboarding`,
       data: { userId: req.params.id, type: 'member_needs_approval' },
     });
   }

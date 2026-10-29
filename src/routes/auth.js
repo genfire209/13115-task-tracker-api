@@ -30,13 +30,39 @@ function toUserJson(row) {
   };
 }
 
+// Records the user's latest login. One row per user, updated in place - a
+// row per login let anyone replaying a Google token fill the free 32 MB
+// database (and then every login, which writes here, would fail).
 async function logLogin(pool, userId, email) {
+  const updated = await pool
+    .request()
+    .input('userId', sql.NVarChar, userId)
+    .query('UPDATE LoginEvents SET timestamp = SYSUTCDATETIME() WHERE userId = @userId');
+  if (updated.rowsAffected[0] > 0) return;
   await pool
     .request()
     .input('id', sql.NVarChar, `login-${crypto.randomUUID()}`)
     .input('userId', sql.NVarChar, userId)
     .input('email', sql.NVarChar, email)
     .query('INSERT INTO LoginEvents (id, userId, email) VALUES (@id, @userId, @email)');
+}
+
+// Logins per Google account per window. A real person signs in a handful of
+// times a day; this stops a script replaying one token. In memory: the API
+// runs as a single instance.
+const LOGIN_LIMIT = 20;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const recentLogins = new Map(); // email -> { count, since }
+
+function loginAllowed(email) {
+  const now = Date.now();
+  const entry = recentLogins.get(email);
+  if (!entry || now - entry.since > LOGIN_WINDOW_MS) {
+    recentLogins.set(email, { count: 1, since: now });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= LOGIN_LIMIT;
 }
 
 // POST /api/auth/login
@@ -56,6 +82,9 @@ router.post('/login', asyncHandler(async (req, res) => {
   } catch (err) {
     console.error('Token verification failed', err);
     return res.status(401).json({ error: 'Invalid token' });
+  }
+  if (!loginAllowed(email)) {
+    return res.status(429).json({ error: 'Too many sign-ins - wait a few minutes and try again' });
   }
 
   const pool = await getPool();

@@ -9,14 +9,24 @@ const { OAuth2Client } = require('google-auth-library');
 const AUDIENCES = [process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_ID_WEB].filter(Boolean);
 const googleClient = new OAuth2Client();
 
+/**
+ * The account a verified token belongs to. The email is the user's id here,
+ * so it must be one Google has confirmed the person owns.
+ */
+function identityFromPayload(payload) {
+  if (!payload?.email || payload.email_verified !== true) {
+    throw new Error('Google has not verified this email address');
+  }
+  return { email: payload.email, name: payload.name || payload.email };
+}
+
 /** Verifies a Google Sign-In id token, returns { email, name }. Throws if invalid. */
 async function verifyGoogleToken(idToken) {
   const ticket = await googleClient.verifyIdToken({
     idToken,
     audience: AUDIENCES,
   });
-  const payload = ticket.getPayload();
-  return { email: payload.email, name: payload.name || payload.email };
+  return identityFromPayload(ticket.getPayload());
 }
 
-module.exports = { verifyGoogleToken };
+module.exports = { verifyGoogleToken, identityFromPayload };
