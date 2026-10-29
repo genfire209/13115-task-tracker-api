@@ -82,6 +82,9 @@ test('a real meet: one 10-min, one 5-min and one result alert per match of ours,
   }
   console.log(report.join('\n'));
 
+  // Tapping a match alert opens that match.
+  assert.ok(sent.filter((a) => a.data.type === 'meet_result').every((a) => a.data.matchKey.startsWith('QUALIFICATION-0-')));
+
   // Nothing about anyone else's matches.
   const ourLabels = ourMatches.map(label);
   for (const a of sent.filter((x) => x.data.type === 'meet_match' || x.data.type === 'meet_result')) {

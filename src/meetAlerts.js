@@ -222,11 +222,12 @@ async function claim(pool, meet, matchKey, kind) {
   }
 }
 
-function notify(meet, { title, body }, type) {
+// `matchKey` lets a tap on the alert open that match in the app.
+function notify(meet, { title, body }, type, matchKey) {
   const message = {
     title: meet.testOnly ? `[Test] ${title}` : title,
     body,
-    data: { type, season: meet.season, eventCode: meet.eventCode },
+    data: { type, season: meet.season, eventCode: meet.eventCode, ...(matchKey ? { matchKey } : {}) },
   };
   return meet.testOnly ? sendToUser(meet.startedBy, message) : sendToTeam(message);
 }
@@ -235,7 +236,8 @@ function notify(meet, { title, body }, type) {
 // alerts that are actually going out.
 async function alertOnce(pool, meet, matchKey, kind, message, type) {
   if (await claim(pool, meet, matchKey, kind)) {
-    await notify(meet, typeof message === 'function' ? await message() : message, type);
+    const matchAlert = type === 'meet_match' || type === 'meet_result';
+    await notify(meet, typeof message === 'function' ? await message() : message, type, matchAlert ? matchKey : null);
     return 1;
   }
   return 0;
