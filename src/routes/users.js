@@ -206,6 +206,17 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     if ((pushToken !== undefined && !isSelf) || (changesProfile && !isSelf && !captain) || (changesMembership && !captain)) {
       return res.status(403).json({ error: "You can't change that for this account" });
     }
+    // Admins (and the owner account) can only be removed, renamed or changed
+    // by another admin - so the captain can't lock out whoever runs the app.
+    if (!isSelf && (changesProfile || changesMembership) && !req.user.isAdmin) {
+      const target = await (await getPool())
+        .request()
+        .input('id', sql.NVarChar, req.params.id)
+        .query('SELECT isAdmin FROM Users WHERE id = @id');
+      if (target.recordset[0]?.isAdmin || req.params.id === CAPTAIN_CHANGE_OWNER) {
+        return res.status(403).json({ error: "Only an admin can change an admin's account" });
+      }
+    }
   }
 
   if (role !== undefined) {

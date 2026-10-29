@@ -72,3 +72,16 @@ test("Google tokens must carry a verified email", () => {
   assert.throws(() => identityFromPayload({ email: 'a@x.com' }));
   assert.throws(() => identityFromPayload({ email_verified: true }));
 });
+
+test("the captain can't remove or change an admin; an admin can", async () => {
+  for (const target of ['admin@x.com', '428akotilingala@frhsd.com']) {
+    for (const body of [{ banned: true }, { name: 'Renamed' }, { isJunior: true }]) {
+      const r = await call('PATCH', `/api/users/${target}`, { as: 'captain@x.com', body });
+      assert.equal(r.status, 403, `${target} ${JSON.stringify(body)}`);
+    }
+  }
+  assert.equal((await tables()).Users.find((u) => u.id === 'admin@x.com').banned, 0);
+  // The captain still manages regular members, and admins outrank the captain.
+  assert.equal((await call('PATCH', '/api/users/bob@x.com', { as: 'captain@x.com', body: { isJunior: false } })).status, 200);
+  assert.equal((await call('PATCH', '/api/users/captain@x.com', { as: 'admin@x.com', body: { name: 'Cap' } })).status, 200);
+});
