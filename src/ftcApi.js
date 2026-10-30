@@ -177,4 +177,37 @@ function fetchTeamEventCodes(season, teamNumber) {
   });
 }
 
-module.exports = { fetchEventMatches, fetchScoreDetails, fetchRankings, fetchRegionEvents, fetchTeamEventCodes };
+/**
+ * A team's public info (name, school, location, rookie year), or null if
+ * that number doesn't exist this season. No name-search parameter exists
+ * on this endpoint at all (checked against FIRST's own swagger spec) - a
+ * name query has to go through ftcScoutSearch.js instead.
+ */
+function fetchTeamInfo(season, teamNumber) {
+  return cached(`team-info:${season}:${teamNumber}`, 60 * MINUTE, async () => {
+    const data = await get(`/${season}/teams?teamNumber=${teamNumber}`);
+    const info = data?.teams?.[0];
+    if (!info) return null;
+    return {
+      teamNumber: info.teamNumber,
+      nameFull: info.nameFull ?? null,
+      nameShort: info.nameShort ?? null,
+      schoolName: info.schoolName ?? null,
+      city: info.city ?? null,
+      stateProv: info.stateProv ?? null,
+      country: info.country ?? null,
+      rookieYear: info.rookieYear ?? null,
+      homeRegion: info.homeRegion ?? null,
+      displayLocation: info.displayLocation ?? null,
+    };
+  });
+}
+
+module.exports = {
+  fetchEventMatches,
+  fetchScoreDetails,
+  fetchRankings,
+  fetchRegionEvents,
+  fetchTeamEventCodes,
+  fetchTeamInfo,
+};

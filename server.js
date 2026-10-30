@@ -7,6 +7,7 @@ const usersRouter = require('./src/routes/users');
 const cronRouter = require('./src/routes/cron');
 const ftcLiveRouter = require('./src/routes/ftcLive');
 const meetsRouter = require('./src/routes/meets');
+const teamsRouter = require('./src/routes/teams');
 const { authenticate, requireSession, requireApproved } = require('./src/authenticate');
 const { requireCurrentApp, showMinimumBuild, setMinimumBuild } = require('./src/appVersion');
 const asyncHandler = require('./src/asyncHandler');
@@ -60,6 +61,7 @@ app.use('/api/extension-requests', requireApproved, extensionRequestsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/ftc-live', requireApproved, ftcLiveRouter);
 app.use('/api/meets', requireSession, requireApproved, meetsRouter);
+app.use('/api/teams', requireSession, requireApproved, teamsRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

@@ -173,7 +173,31 @@ stub('ftcApi.js', {
     { code: 'USNJSOM1', name: fixture.name, dateStart: '2026-10-24T00:00:00', dateEnd: '2026-10-24T00:00:00' },
     { code: 'USNJSOM4', name: 'P2-5 Southern League Meet', dateStart: '2026-12-05T00:00:00', dateEnd: '2026-12-05T00:00:00' },
   ],
-  fetchTeamEventCodes: async () => ['USNJSOM1'],
+  fetchTeamEventCodes: async (season, teamNumber) => (season === 2026 && teamNumber === 13115 ? ['USNJSOM1'] : []),
+  fetchTeamInfo: async (season, teamNumber) => {
+    if (season !== 2026 || ![13115, 23743].includes(teamNumber)) return null;
+    return teamNumber === 13115
+      ? {
+          teamNumber: 13115,
+          nameFull: 'Brave Robotics',
+          nameShort: 'Brave Robotics',
+          schoolName: null,
+          city: 'Englishtown',
+          stateProv: 'NJ',
+          country: 'USA',
+          rookieYear: 2017,
+          homeRegion: 'USNJ',
+          displayLocation: 'Englishtown, NJ, USA',
+        }
+      : { teamNumber: 23743, nameFull: 'Some Other Team', nameShort: 'Other', schoolName: null, city: null, stateProv: null, country: null, rookieYear: null, homeRegion: null, displayLocation: null };
+  },
+});
+
+// FTCScout's name-search API (ftcScoutSearch.js), used only to resolve a
+// name into a team number.
+stub('ftcScoutSearch.js', {
+  searchTeamsByName: async (searchText) =>
+    /brave/i.test(searchText) ? [{ number: 13115, name: 'Brave Robotics' }] : [],
 });
 
 // Lets a test read the in-memory tables over HTTP.
