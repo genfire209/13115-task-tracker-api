@@ -101,3 +101,12 @@ CREATE INDEX IX_Tasks_AssignedTo ON Tasks(assignedTo);
 CREATE INDEX IX_TaskEvents_TaskId ON TaskEvents(taskId);
 CREATE INDEX IX_ExtensionRequests_TaskId ON ExtensionRequests(taskId);
 CREATE INDEX IX_LoginEvents_UserId ON LoginEvents(userId);
+
+-- Forced updates: the oldest app build still allowed ('minimumAppBuild'),
+-- set by an admin from the app. See src/appVersion.js.
+CREATE TABLE AppSettings (
+    name NVARCHAR(50) PRIMARY KEY,
+    value NVARCHAR(200) NOT NULL,
+    updatedBy NVARCHAR(100) NULL,
+    updatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);

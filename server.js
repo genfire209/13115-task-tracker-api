@@ -8,6 +8,8 @@ const cronRouter = require('./src/routes/cron');
 const ftcLiveRouter = require('./src/routes/ftcLive');
 const meetsRouter = require('./src/routes/meets');
 const { authenticate, requireSession, requireApproved } = require('./src/authenticate');
+const { requireCurrentApp, showMinimumBuild, setMinimumBuild } = require('./src/appVersion');
+const asyncHandler = require('./src/asyncHandler');
 const { runMeetTick } = require('./src/meetAlerts');
 const { getPool } = require('./src/db');
 const { ensureTables } = require('./src/schema');
@@ -37,12 +39,20 @@ app.use(express.json());
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
-// Open: login hands out the session token; cron has its own shared secret.
-app.use('/api/auth', authRouter);
+// Cron has its own shared secret, and the app checks the minimum build
+// before anything else - both open, and neither sent by an app build.
 app.use('/api/cron', cronRouter);
+app.get('/api/app-version', asyncHandler(showMinimumBuild));
+
+// From here on, app builds older than the minimum get 426 (src/appVersion.js).
+app.use('/api', requireCurrentApp);
+
+// Open: login hands out the session token.
+app.use('/api/auth', authRouter);
 
 // Everything below needs a session token (see src/authenticate.js).
 app.use('/api', authenticate);
+app.put('/api/app-version', requireSession, asyncHandler(setMinimumBuild));
 app.use('/api/tasks', requireApproved, tasksRouter);
 app.use('/api/extension-requests', requireApproved, extensionRequestsRouter);
 // Gated per route: members still onboarding or awaiting approval need to

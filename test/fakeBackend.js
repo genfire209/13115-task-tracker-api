@@ -28,6 +28,7 @@ const tables = {
   WatchedFtcEvents: [],
   ActiveMeets: [],
   MeetAlertsSent: [],
+  AppSettings: [],
   PushLog: [], // every push the server tried to send (see the push.js stub)
 };
 

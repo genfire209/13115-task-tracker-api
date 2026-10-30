@@ -17,6 +17,15 @@ const TABLES = {
         endedAt DATETIME2 NULL
     )
   `,
+  // Forced updates (2026-10-30): the oldest app build still allowed.
+  AppSettings: `
+    CREATE TABLE AppSettings (
+        name NVARCHAR(50) PRIMARY KEY,
+        value NVARCHAR(200) NOT NULL,
+        updatedBy NVARCHAR(100) NULL,
+        updatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    )
+  `,
   MeetAlertsSent: `
     CREATE TABLE MeetAlertsSent (
         season INT NOT NULL,

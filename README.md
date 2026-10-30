@@ -61,6 +61,14 @@ A user's id is their email, so members see everyone else's id as a stable
 working during a rollout; it reopens the old hole, so turn it off once
 everyone has updated.
 
+Forced updates (`src/appVersion.js`): the app sends its build number as
+`X-App-Build`. An admin sets the oldest build still allowed from the app
+(Profile → Required app version, i.e. `PUT /api/app-version`, never above
+their own build); older builds - and tokenless pre-9 builds, which send no
+build - then get 426 on everything except `/api/health`, `/api/cron` and
+`GET /api/app-version`. Pre-9 builds can't show an update screen, so their
+`GET /api/tasks` returns one "Update required" task instead.
+
 `npm test` runs the server against an in-memory fake database and checks
 these rules.
 
