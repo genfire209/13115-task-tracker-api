@@ -62,6 +62,14 @@ test('a team lookup has its info and the matches it played this season', async (
   assert.ok(event.matches.every((m) => m.teams.some((t) => t.teamNumber === 13115)));
 });
 
+test('total ranking points is the whole-number sum across played matches, not the average', async () => {
+  const r = await call('GET', '/api/teams/13115?season=2026', { as: 'bob@x.com' });
+  const [event] = r.body.events;
+  // 1 win (3 RP, no posted breakdown so no bonus RP) and 5 losses (0 RP each).
+  assert.equal(event.totalRankingPoints, 3);
+  assert.ok(Number.isInteger(event.totalRankingPoints));
+});
+
 test('a team not registered this season still returns its info with no events', async () => {
   const r = await call('GET', '/api/teams/23743?season=2026', { as: 'bob@x.com' });
   assert.equal(r.status, 200);
