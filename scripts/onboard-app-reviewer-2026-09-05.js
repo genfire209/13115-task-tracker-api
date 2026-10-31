@@ -6,7 +6,7 @@
 // Usage: SQL_CONNECTION_STRING="..." node scripts/onboard-app-reviewer-2026-09-05.js
 const sql = require('mssql');
 
-const EMAIL = '13115reviewer@gmail.com';
+const EMAIL = '13115reviewer2@gmail.com';
 
 async function main() {
   const pool = await sql.connect(process.env.SQL_CONNECTION_STRING);
