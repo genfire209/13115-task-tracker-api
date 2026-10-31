@@ -20,7 +20,7 @@ async function main() {
     await pool
       .request()
       .input('id', sql.NVarChar, EMAIL)
-      .input('subteam', sql.NVarChar, 'mechanical')
+      .input('subteam', sql.NVarChar, 'system_integration')
       .query(
         `UPDATE Users SET subteam = @subteam, approved = 1, hiddenFromRoster = 1, banned = 0
          WHERE id = @id`,
@@ -34,7 +34,7 @@ async function main() {
       .input('email', sql.NVarChar, EMAIL)
       .input('authProvider', sql.NVarChar, 'google')
       .input('role', sql.NVarChar, 'member')
-      .input('subteam', sql.NVarChar, 'mechanical')
+      .input('subteam', sql.NVarChar, 'system_integration')
       .query(
         `INSERT INTO Users (id, name, email, authProvider, role, subteam, isAdmin, hiddenFromRoster, approved)
          VALUES (@id, @name, @email, @authProvider, @role, @subteam, 0, 1, 1)`,
