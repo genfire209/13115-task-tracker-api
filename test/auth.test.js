@@ -87,7 +87,7 @@ test('a member cannot approve, ban, rename or hijack pushes of someone else', as
 test('a waiting member can onboard but not approve themselves or see the board', async () => {
   assert.equal((await call('GET', '/api/tasks', { as: 'newbie@x.com' })).status, 403);
   assert.equal((await call('GET', '/api/users/newbie@x.com', { as: 'newbie@x.com' })).status, 200);
-  const onboard = await call('PATCH', '/api/users/newbie@x.com', { as: 'newbie@x.com', body: { name: 'Newt', subteams: ['strategy'] } });
+  const onboard = await call('PATCH', '/api/users/newbie@x.com', { as: 'newbie@x.com', body: { name: 'Newt', subteams: ['flower'] } });
   assert.equal(onboard.status, 200);
   assert.equal((await call('PATCH', '/api/users/newbie@x.com', { as: 'newbie@x.com', body: { approved: true } })).status, 403);
 });

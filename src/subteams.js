@@ -2,7 +2,7 @@
 // comma-separated string in the (widened) Users.subteam column, exposed over
 // the API as a `subteams` array so the wire format matches what it actually
 // means now.
-const SUBTEAMS = ['mechanical', 'outreach', 'programming', 'strategy'];
+const SUBTEAMS = ['driving', 'outtake', 'intake', 'flower', 'system_integration'];
 
 function subteamsToDb(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return null;

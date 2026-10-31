@@ -50,9 +50,9 @@ test('one account can only sign in 20 times in 10 minutes', async () => {
 
 test('captains hear about a new member once, not on every save', async () => {
   const onboard = (body) => call('PATCH', '/api/users/fresh@x.com', { as: 'fresh@x.com', body });
-  assert.equal((await onboard({ name: 'Fresh Face', subteams: ['strategy'] })).status, 200);
-  assert.equal((await onboard({ name: 'Click evil.example now', subteams: ['outreach'] })).status, 200);
-  assert.equal((await onboard({ subteams: ['mechanical'] })).status, 200);
+  assert.equal((await onboard({ name: 'Fresh Face', subteams: ['flower'] })).status, 200);
+  assert.equal((await onboard({ name: 'Click evil.example now', subteams: ['intake'] })).status, 200);
+  assert.equal((await onboard({ subteams: ['driving'] })).status, 200);
   const alerts = (await tables()).PushLog.filter((p) => p.title === 'New member needs approval');
   assert.deepEqual(alerts.map((a) => a.body), ['Fresh Face completed onboarding']);
 });

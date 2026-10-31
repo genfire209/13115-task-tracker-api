@@ -9,14 +9,14 @@ const path = require('path');
 
 const tables = {
   Users: [
-    { id: 'captain@x.com', name: 'Cap', email: 'captain@x.com', authProvider: 'google', role: 'captain', subteam: 'programming', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
-    { id: 'admin@x.com', name: 'Admin', email: 'admin@x.com', authProvider: 'google', role: 'member', subteam: 'programming', banned: 0, isAdmin: 1, hiddenFromRoster: 1, approved: 1, isJunior: 0, pushToken: null },
-    { id: '428akotilingala@frhsd.com', name: 'Owner', email: '428akotilingala@frhsd.com', authProvider: 'google', role: 'member', subteam: 'programming', banned: 0, isAdmin: 1, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
-    { id: 'alice@x.com', name: 'Alice', email: 'alice@x.com', authProvider: 'google', role: 'member', subteam: 'mechanical', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: 'device-1' },
-    { id: 'bob@x.com', name: 'Bob', email: 'bob@x.com', authProvider: 'google', role: 'member', subteam: 'outreach', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
+    { id: 'captain@x.com', name: 'Cap', email: 'captain@x.com', authProvider: 'google', role: 'captain', subteam: 'system_integration', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
+    { id: 'admin@x.com', name: 'Admin', email: 'admin@x.com', authProvider: 'google', role: 'member', subteam: 'system_integration', banned: 0, isAdmin: 1, hiddenFromRoster: 1, approved: 1, isJunior: 0, pushToken: null },
+    { id: '428akotilingala@frhsd.com', name: 'Owner', email: '428akotilingala@frhsd.com', authProvider: 'google', role: 'member', subteam: 'system_integration', banned: 0, isAdmin: 1, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
+    { id: 'alice@x.com', name: 'Alice', email: 'alice@x.com', authProvider: 'google', role: 'member', subteam: 'driving', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: 'device-1' },
+    { id: 'bob@x.com', name: 'Bob', email: 'bob@x.com', authProvider: 'google', role: 'member', subteam: 'intake', banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
     { id: 'newbie@x.com', name: 'New', email: 'newbie@x.com', authProvider: 'google', role: 'member', subteam: null, banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 0, isJunior: 0, pushToken: null },
     { id: 'fresh@x.com', name: 'Fresh', email: 'fresh@x.com', authProvider: 'google', role: 'member', subteam: null, banned: 0, isAdmin: 0, hiddenFromRoster: 0, approved: 0, isJunior: 0, pushToken: null },
-    { id: 'gone@x.com', name: 'Gone', email: 'gone@x.com', authProvider: 'google', role: 'member', subteam: 'outreach', banned: 1, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
+    { id: 'gone@x.com', name: 'Gone', email: 'gone@x.com', authProvider: 'google', role: 'member', subteam: 'intake', banned: 1, isAdmin: 0, hiddenFromRoster: 0, approved: 1, isJunior: 0, pushToken: null },
   ],
   Tasks: [
     { id: 'task-alice', title: 'Wire the hub', description: '', category: 'programming', createdBy: 'captain@x.com', assignedTo: 'alice@x.com', status: 'accepted', dueDate: new Date('2030-01-01'), reminderSentAt: null },

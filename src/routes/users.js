@@ -198,7 +198,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
 // PATCH /api/users/:id
 // Body: { role?, name?, subteams?, banned?, approved?, pushToken?, isJunior?, pin? }
-// subteams is a non-empty array of the 4 known subteam strings; a user can
+// subteams is a non-empty array of the 5 known subteam strings; a user can
 // belong to more than one. You can change your own name, subteams and
 // device token; captains/admins can also rename, re-team, approve, remove
 // and move other members between junior and main. `role` (who's captain)
@@ -250,7 +250,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
   if (subteams !== undefined && !isValidSubteamsArray(subteams)) {
     return res.status(400).json({
-      error: 'subteams must be a non-empty array of: mechanical, outreach, programming, strategy',
+      error: 'subteams must be a non-empty array of: driving, outtake, intake, flower, system_integration',
     });
   }
   if (
